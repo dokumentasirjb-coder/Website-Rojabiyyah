@@ -15,7 +15,7 @@ const props = withDefaults(
     label: 'Unggah Foto',
     description: 'Format JPG, PNG, atau WebP.',
     aspect: 'banner',
-    maxDimension: 1600
+    maxDimension: 1000
   }
 )
 
@@ -83,10 +83,10 @@ function processImageFile(file: File) {
         const ctx = canvas.getContext('2d')
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height)
-          // Always preserve transparency for PNG, WebP, and SVG files (never convert to JPEG which turns transparent pixels black)
-          const isTransparent = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/svg+xml'
-          const mime = isTransparent ? 'image/png' : 'image/jpeg'
-          const compressedDataUrl = canvas.toDataURL(mime, isTransparent ? undefined : 0.85)
+          // Untuk foto berita, banner, sampul (bukan SVG atau logo khusus), gunakan JPEG 0.82 agar sangat ringan (~35KB-50KB) dan tidak menghabiskan kuota
+          const isLogoOrSvg = file.type === 'image/svg+xml' || (props.aspect === 'square' && file.type === 'image/png')
+          const mime = isLogoOrSvg ? 'image/png' : 'image/jpeg'
+          const compressedDataUrl = canvas.toDataURL(mime, isLogoOrSvg ? undefined : 0.82)
           emit('update:modelValue', compressedDataUrl)
         } else {
           emit('update:modelValue', rawDataUrl)

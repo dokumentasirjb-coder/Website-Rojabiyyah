@@ -76,7 +76,7 @@ function handleArticleClick(article: Article) {
             <!-- Article Thumbnail Image -->
             <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-slate-100 border border-slate-100">
               <img
-                :src="article.cover_image || article.cover_image_url || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'"
+                :src="article.cover_image || article.cover_image_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80'"
                 :alt="article.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"

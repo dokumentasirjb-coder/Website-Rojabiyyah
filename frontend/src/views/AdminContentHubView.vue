@@ -820,7 +820,7 @@ function handleSaveArticle(targetStatus?: 'published' | 'draft') {
   const finalSlug = (articleForm.slug || generateSlug(articleForm.title)) || `berita-${Date.now()}`
   const finalCover = (articleForm.cover_image && articleForm.cover_image.trim())
     ? articleForm.cover_image.trim()
-    : 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'
+    : 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80'
 
   newsStore.saveArticle({
     id: articleForm.id,
@@ -979,16 +979,16 @@ function applyImageModal() {
   }, 50)
 }
 
-function handleDeleteArticle(art: Article) {
+async function handleDeleteArticle(art: Article) {
   if (confirm(`Hapus artikel "${art.title}"?`)) {
-    newsStore.deleteArticle(art.id)
+    await newsStore.deleteArticle(art.id)
     toastMessage.value = 'Berita berhasil dihapus!'
     showToast.value = true
     setTimeout(() => { showToast.value = false }, 3000)
   }
 }
 
-function handleClearAllArticles() {
+async function handleClearAllArticles() {
   if (confirm('Hapus seluruh warta berita? Halaman berita publik akan dikosongkan.')) {
     newsStore.clearAllArticles()
     toastMessage.value = 'Seluruh berita berhasil dikosongkan!'

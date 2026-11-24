@@ -395,7 +395,7 @@ watch(() => route.params.slug, async (newSlug) => {
         <!-- Full Width Featured Cover Image -->
         <div class="relative aspect-[16/9] sm:aspect-[2/1] rounded-3xl overflow-hidden mb-10 bg-slate-100 border border-slate-100 shadow-sm">
           <img
-            :src="currentArticle.cover_image || currentArticle.cover_image_url || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1400&q=80'"
+            :src="currentArticle.cover_image || currentArticle.cover_image_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1400&q=80'"
             :alt="currentArticle.title"
             class="w-full h-full object-cover"
           />

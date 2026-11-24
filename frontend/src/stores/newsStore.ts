@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/lib/axios'
+import { idbGet, idbSet } from '@/lib/idb'
 import type { Article, Category, Announcement, HomeData, PaginationMeta } from '@/types'
 
 export const DEFAULT_ARTICLES: Article[] = [
@@ -135,6 +136,27 @@ export const DEFAULT_ARTICLES: Article[] = [
 const STORAGE_KEY = 'muktamar_news_articles_v3'
 const SEEDED_KEY = 'muktamar_news_seeded_v3'
 
+// Fungsi pembersih duplikat: pastikan tidak ada 2 artikel dengan ID atau Judul/Slug yang sama
+function deduplicateArticles(list: Article[]): Article[] {
+  if (!Array.isArray(list)) return []
+  const seenIds = new Set<string>()
+  const seenTitles = new Set<string>()
+  const result: Article[] = []
+
+  for (const art of list) {
+    if (!art) continue
+    const idKey = String(art.id)
+    const titleKey = (art.slug || art.title || '').trim().toLowerCase()
+
+    if (!seenIds.has(idKey) && (!titleKey || !seenTitles.has(titleKey))) {
+      seenIds.add(idKey)
+      if (titleKey) seenTitles.add(titleKey)
+      result.push(art)
+    }
+  }
+  return result
+}
+
 export const useNewsStore = defineStore('news', () => {
   const isSeeded = typeof window !== 'undefined' && localStorage.getItem(SEEDED_KEY) === 'true'
   const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
@@ -144,7 +166,7 @@ export const useNewsStore = defineStore('news', () => {
     try {
       const parsed = JSON.parse(saved)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        initialArticles = parsed
+        initialArticles = deduplicateArticles(parsed)
       } else {
         initialArticles = DEFAULT_ARTICLES
       }
@@ -191,26 +213,79 @@ export const useNewsStore = defineStore('news', () => {
   const isLoadingDetail = ref(false)
   const error = ref<string | null>(null)
 
+  // Sinkronisasi data berkualitas tinggi dari IndexedDB saat startup (mengatasi batas kuota 5MB LocalStorage)
+  if (typeof window !== 'undefined') {
+    idbGet<Article[]>(STORAGE_KEY).then((idbData) => {
+      if (Array.isArray(idbData) && idbData.length > 0) {
+        articles.value = deduplicateArticles(idbData)
+        pagination.value.total = articles.value.length
+      }
+    }).catch(() => {})
+
+    // Dengarkan perubahan antar tab browser agar halaman publik otomatis update saat admin menghapus/menambah artikel
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) {
+            articles.value = deduplicateArticles(parsed)
+            pagination.value.total = articles.value.length
+          }
+        } catch {}
+      }
+    })
+
+    window.addEventListener('news-store-updated', () => {
+      reloadFromStorage()
+    })
+  }
+
+  function reloadFromStorage() {
+    if (typeof window === 'undefined') return
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          articles.value = deduplicateArticles(parsed)
+          pagination.value.total = articles.value.length
+        }
+      } catch {}
+    }
+  }
+
   function persist() {
+    articles.value = deduplicateArticles(articles.value)
+    pagination.value.total = articles.value.length
+
     if (typeof window !== 'undefined') {
+      // 1. Simpan salinan lengkap termasuk gambar ke IndexedDB (tidak ada batas kuota 5MB)
+      try {
+        idbSet(STORAGE_KEY, JSON.parse(JSON.stringify(articles.value))).catch(() => {})
+      } catch {}
+
+      // 2. Simpan ke LocalStorage untuk akses sinkron cepat
       try {
         localStorage.setItem(SEEDED_KEY, 'true')
         localStorage.setItem(STORAGE_KEY, JSON.stringify(articles.value))
       } catch (e) {
-        console.warn('LocalStorage error or quota exceeded in newsStore:', e)
-        // Jika penyimpanan penuh (misal karena base64 foto besar), simpan versi ringan
+        console.warn('LocalStorage quota limit reached, saving optimized version:', e)
+        // Jika base64 terlalu besar, simpan ringkasan agar status dan daftar artikel tetap konsisten
         try {
           const lightweight = articles.value.map(a => ({
             ...a,
+            content: a.content?.substring(0, 500) || '',
             mediaMap: {}
           }))
           localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight))
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
+
+      // 3. Kabarkan ke seluruh tab / halaman bahwa daftar berita telah berubah
+      try {
+        window.dispatchEvent(new CustomEvent('news-store-updated'))
+      } catch {}
     }
-    pagination.value.total = articles.value.length
   }
 
   async function fetchHome() {
@@ -238,15 +313,15 @@ export const useNewsStore = defineStore('news', () => {
 
       const response = await api.get<{ data: Article[]; meta?: PaginationMeta }>('/articles', { params })
       if (response.data?.data && response.data.data.length > 0) {
-        articles.value = response.data.data
+        // Gabungkan artikel dari server dengan artikel lokal yang dibuat pengguna
+        const remoteIds = new Set(response.data.data.map(a => String(a.id)))
+        const localOnly = articles.value.filter(a => !remoteIds.has(String(a.id)))
+        articles.value = deduplicateArticles([...localOnly, ...response.data.data])
         persist()
       }
     } catch (err: any) {
-      // Offline fallback: NEVER overwrite user articles if already seeded/modified
-      if (typeof window !== 'undefined' && !localStorage.getItem(SEEDED_KEY)) {
-        articles.value = DEFAULT_ARTICLES
-        persist()
-      }
+      // Offline fallback: muat ulang dari storage lokal dan pastikan ter-deduplikasi
+      reloadFromStorage()
     } finally {
       isLoadingArticles.value = false
     }
@@ -280,13 +355,21 @@ export const useNewsStore = defineStore('news', () => {
 
   async function saveArticle(articleData: Partial<Article>) {
     let savedArticle: Article | null = null
+
+    // Pastikan foto sampul yang diunggah pengguna disimpan seutuhnya (tidak diganti foto mesin tik default)
+    const cover = (articleData.cover_image && articleData.cover_image.trim())
+      ? articleData.cover_image.trim()
+      : ((articleData.cover_image_url && articleData.cover_image_url.trim()) ? articleData.cover_image_url.trim() : 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80')
+
     if (articleData.id) {
       // Update existing
-      const idx = articles.value.findIndex(a => a.id === articleData.id)
+      const idx = articles.value.findIndex(a => String(a.id) === String(articleData.id))
       if (idx !== -1) {
         articles.value[idx] = {
           ...articles.value[idx],
           ...articleData,
+          cover_image: cover,
+          cover_image_url: cover,
           category: articleData.category || articles.value[idx].category,
           author: articleData.author || articles.value[idx].author,
           tags: articleData.tags !== undefined ? articleData.tags : articles.value[idx].tags,
@@ -300,6 +383,28 @@ export const useNewsStore = defineStore('news', () => {
       // Create new article
       const newId = Date.now()
       const newSlug = articleData.slug || articleData.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || `berita-${newId}`
+
+      // Cegah duplikat: jika sudah ada artikel dengan judul atau slug yang sama persis, perbarui saja!
+      const existingIdx = articles.value.findIndex(a => 
+        (a.slug && a.slug === newSlug) || 
+        (a.title && articleData.title && a.title.trim().toLowerCase() === articleData.title.trim().toLowerCase())
+      )
+      if (existingIdx !== -1) {
+        articles.value[existingIdx] = {
+          ...articles.value[existingIdx],
+          ...articleData,
+          cover_image: cover,
+          cover_image_url: cover,
+          slug: newSlug,
+          category: articleData.category || articles.value[existingIdx].category,
+          author: articleData.author || articles.value[existingIdx].author,
+          mediaMap: articleData.mediaMap || articles.value[existingIdx].mediaMap || {},
+        } as Article
+        savedArticle = articles.value[existingIdx]
+        persist()
+        return true
+      }
+
       savedArticle = {
         id: newId,
         title: articleData.title || 'Judul Berita',
@@ -307,8 +412,8 @@ export const useNewsStore = defineStore('news', () => {
         excerpt: articleData.excerpt || '',
         content: articleData.content || '',
         mediaMap: articleData.mediaMap || {},
-        cover_image: articleData.cover_image || articleData.cover_image_url || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80',
-        cover_image_url: articleData.cover_image_url || articleData.cover_image || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80',
+        cover_image: cover,
+        cover_image_url: cover,
         is_featured: !!articleData.is_featured,
         status: (articleData.status as any) || 'published',
         view_count: 0,
@@ -327,6 +432,7 @@ export const useNewsStore = defineStore('news', () => {
       }
       articles.value.unshift(savedArticle)
     }
+
     persist()
 
     // Upaya sinkronisasi ke backend API (jika server Laravel aktif)
@@ -350,7 +456,7 @@ export const useNewsStore = defineStore('news', () => {
         }
       }
     } catch {
-      // Offline fallback: tetap sukses tersimpan di memori & localStorage
+      // Offline fallback: tetap sukses tersimpan di memori & localStorage & IndexedDB
     }
 
     return true
@@ -364,18 +470,26 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
-  function deleteArticle(id: number | string) {
-    const idx = articles.value.findIndex(a => a.id === id)
-    if (idx !== -1) {
-      articles.value.splice(idx, 1)
-      persist()
-      return true
+  async function deleteArticle(id: number | string) {
+    const targetId = String(id)
+    articles.value = articles.value.filter(a => String(a.id) !== targetId)
+    persist()
+
+    // Upaya sinkronisasi hapus ke backend Laravel jika aktif
+    try {
+      if (typeof id === 'number' && id < 1000000000) {
+        await api.delete(`/admin/articles/${id}`)
+      }
+    } catch {
+      // Offline fallback
     }
-    return false
+
+    return true
   }
 
   function toggleArticleStatus(id: number | string) {
-    const art = articles.value.find(a => a.id === id)
+    const targetId = String(id)
+    const art = articles.value.find(a => String(a.id) === targetId)
     if (art) {
       art.status = art.status === 'published' ? 'draft' : 'published'
       persist()
@@ -437,3 +551,4 @@ export const useNewsStore = defineStore('news', () => {
     setSearch,
   }
 })
+
