@@ -47,7 +47,8 @@ import {
   Link2,
   BookmarkCheck,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Send
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -523,24 +524,51 @@ function openEditArticle(art: Article) {
   newsMode.value = 'form'
 }
 
-function handleSaveArticle() {
-  if (!articleForm.title) {
-    alert('Judul Berita wajib diisi.')
+function handleSaveArticle(targetStatus?: 'published' | 'draft') {
+  if (!articleForm.title || !articleForm.title.trim()) {
+    alert('Judul Berita wajib diisi sebelum menyimpan/menerbitkan.')
+    const titleInput = document.querySelector('input[placeholder*="judul berita"]') as HTMLInputElement | null
+    if (titleInput) titleInput.focus()
     return
   }
-  if (!articleForm.excerpt) {
-    alert('Ringkasan Berita wajib diisi.')
-    return
+
+  // Jika Ringkasan kosong, buat otomatis dari teks konten naskah
+  if (!articleForm.excerpt || !articleForm.excerpt.trim()) {
+    if (articleForm.content && articleForm.content.trim()) {
+      const clean = articleForm.content
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/[#*`_>\[\]!]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      articleForm.excerpt = clean.substring(0, 160) + (clean.length > 160 ? '...' : '')
+    }
+  }
+
+  // Jika tetap kosong (konten naskah juga belum diisi), gunakan judul berita
+  if (!articleForm.excerpt || !articleForm.excerpt.trim()) {
+    articleForm.excerpt = articleForm.title.trim()
+  }
+
+  // Jika konten naskah kosong, berikan paragraf awal dari ringkasan
+  if (!articleForm.content || !articleForm.content.trim()) {
+    articleForm.content = `<p>${articleForm.excerpt}</p>`
+  }
+
+  // Set status publikasi jika diklik dari tombol spesifik
+  if (targetStatus) {
+    articleForm.status = targetStatus
+  } else if (!articleForm.status) {
+    articleForm.status = 'published'
   }
 
   const finalSlug = (articleForm.slug || generateSlug(articleForm.title)) || `berita-${Date.now()}`
 
   newsStore.saveArticle({
     id: articleForm.id,
-    title: articleForm.title,
+    title: articleForm.title.trim(),
     slug: finalSlug,
-    excerpt: articleForm.excerpt,
-    content: articleForm.content || `<p>${articleForm.excerpt}</p>`,
+    excerpt: articleForm.excerpt.trim(),
+    content: articleForm.content,
     cover_image: articleForm.cover_image,
     cover_image_url: articleForm.cover_image,
     status: articleForm.status,
@@ -557,8 +585,8 @@ function handleSaveArticle() {
     },
     category: {
       id: 1,
-      name: articleForm.categoryName.toUpperCase(),
-      slug: articleForm.categoryName.toLowerCase(),
+      name: (articleForm.categoryName || 'LIPUTAN').toUpperCase(),
+      slug: (articleForm.categoryName || 'liputan').toLowerCase(),
       description: null,
       color: '#008f8a',
       icon: null,
@@ -567,8 +595,11 @@ function handleSaveArticle() {
     }
   })
 
+  isContentFullscreen.value = false
   newsMode.value = 'list'
-  toastMessage.value = isEditingArticle.value ? 'Berita berhasil diperbarui!' : 'Berita baru berhasil diterbitkan!'
+  toastMessage.value = articleForm.status === 'published'
+    ? 'Berita berhasil diterbitkan ke publik!'
+    : 'Berita berhasil disimpan sebagai draf!'
   showToast.value = true
   setTimeout(() => { showToast.value = false }, 3500)
 }
@@ -1081,9 +1112,37 @@ async function saveSettings(tabLabel: string) {
         </div>
 
         <!-- Top Right Action Button -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
+          <template v-if="activeTab === 'berita' && newsMode === 'form'">
+            <button
+              type="button"
+              @click="newsMode = 'list'"
+              class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-slate-300 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-[#143d30]"
+            >
+              <ArrowLeft class="w-3.5 h-3.5" />
+              <span>Batal</span>
+            </button>
+            <button
+              type="button"
+              @click="handleSaveArticle('draft')"
+              class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
+              title="Simpan sebagai draf (belum tampil ke publik)"
+            >
+              <BookmarkCheck class="w-3.5 h-3.5" />
+              <span>Simpan Draf</span>
+            </button>
+            <button
+              type="button"
+              @click="handleSaveArticle('published')"
+              class="px-5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:brightness-110 active:scale-95"
+              title="Kirim dan terbitkan langsung ke publik"
+            >
+              <Send class="w-3.5 h-3.5" />
+              <span>Terbitkan ke Publik</span>
+            </button>
+          </template>
           <button
-            v-if="activeTab === 'berita' && newsMode === 'list'"
+            v-else-if="activeTab === 'berita' && newsMode === 'list'"
             type="button"
             @click="openAddArticle"
             class="px-4 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-sm cursor-pointer"
@@ -2043,15 +2102,35 @@ async function saveSettings(tabLabel: string) {
         <!-- VIEW 1: FORM TULIS / UBAH BERITA (Screenshots 2 & 3) -->
         <!-- ------------------------------------------------------------ -->
         <div v-if="newsMode === 'form'" class="space-y-6">
-          <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#143d30] pb-4">
             <button
               type="button"
               @click="newsMode = 'list'"
-              class="px-3.5 py-1.5 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer border border-[#143d30]"
             >
               <ArrowLeft class="w-4 h-4" />
               <span>Kembali ke Daftar Berita</span>
             </button>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="handleSaveArticle('draft')"
+                class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
+                title="Simpan sebagai draf (belum tampil ke publik)"
+              >
+                <BookmarkCheck class="w-4 h-4" />
+                <span>Simpan Draf</span>
+              </button>
+              <button
+                type="button"
+                @click="handleSaveArticle('published')"
+                class="px-5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm hover:brightness-110 active:scale-95"
+                title="Kirim dan terbitkan langsung ke publik"
+              >
+                <Send class="w-4 h-4" />
+                <span>Terbitkan ke Publik</span>
+              </button>
+            </div>
           </div>
 
           <!-- Section 1: Isi Berita -->
@@ -2203,6 +2282,28 @@ async function saveSettings(tabLabel: string) {
                       <span>Pratinjau Hasil</span>
                     </button>
                   </div>
+
+                  <!-- Tombol Aksi saat Layar Penuh -->
+                  <template v-if="isContentFullscreen">
+                    <button
+                      type="button"
+                      @click="handleSaveArticle('draft')"
+                      class="px-3.5 py-1.5 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
+                      title="Simpan sebagai draf"
+                    >
+                      <BookmarkCheck class="w-3.5 h-3.5" />
+                      <span>Draf</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="handleSaveArticle('published')"
+                      class="px-4 py-1.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm hover:brightness-110 active:scale-95"
+                      title="Kirim dan terbitkan langsung ke publik"
+                    >
+                      <Send class="w-3.5 h-3.5" />
+                      <span>Terbitkan</span>
+                    </button>
+                  </template>
 
                   <!-- Tombol Mode Layar Penuh / Perkecil -->
                   <button
@@ -2461,22 +2562,32 @@ async function saveSettings(tabLabel: string) {
           </div>
 
           <!-- Form Bottom Action Bar (Screenshot 3) -->
-          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[#143d30]">
             <button
               type="button"
               @click="newsMode = 'list'"
-              class="px-5 py-2.5 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+              class="px-5 py-2.5 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-slate-300 text-xs font-semibold transition-colors cursor-pointer border border-[#143d30]"
             >
               Batal
             </button>
-            <button
-              type="button"
-              @click="handleSaveArticle"
-              class="px-6 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 cursor-pointer transition-all"
-            >
-              <Save class="w-4 h-4" />
-              <span>Simpan Berita</span>
-            </button>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                @click="handleSaveArticle('draft')"
+                class="px-5 py-2.5 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
+              >
+                <BookmarkCheck class="w-4 h-4" />
+                <span>Simpan sebagai Draf</span>
+              </button>
+              <button
+                type="button"
+                @click="handleSaveArticle('published')"
+                class="px-6 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-95"
+              >
+                <Send class="w-4 h-4" />
+                <span>Terbitkan ke Publik</span>
+              </button>
+            </div>
           </div>
         </div>
 

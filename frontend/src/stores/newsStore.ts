@@ -185,8 +185,22 @@ export const useNewsStore = defineStore('news', () => {
 
   function persist() {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(SEEDED_KEY, 'true')
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(articles.value))
+      try {
+        localStorage.setItem(SEEDED_KEY, 'true')
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(articles.value))
+      } catch (e) {
+        console.warn('LocalStorage error or quota exceeded in newsStore:', e)
+        // Jika penyimpanan penuh (misal karena base64 foto besar), simpan versi ringan
+        try {
+          const lightweight = articles.value.map(a => ({
+            ...a,
+            mediaMap: {}
+          }))
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight))
+        } catch {
+          // ignore
+        }
+      }
     }
     pagination.value.total = articles.value.length
   }
