@@ -5,12 +5,12 @@ const settingsStore = useSettingsStore()
 </script>
 
 <template>
-  <div class="bg-[#faf9f6] text-slate-900 transition-colors">
+  <div class="bg-white text-slate-900 transition-colors">
     <!-- Header / Intro Bar with Subtle Bottom Border -->
-    <div class="border-b border-slate-200/80">
+    <div class="border-b border-slate-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-baseline">
-          <div class="lg:col-span-5 space-y-1">
+          <div class="lg:col-span-5 space-y-1.5">
             <span class="text-[11px] font-bold tracking-[0.25em] uppercase text-[#008f8a] block">
               {{ settingsStore.settings.about_tag || 'TENTANG MUKTAMAR' }}
             </span>
@@ -32,11 +32,11 @@ const settingsStore = useSettingsStore()
       v-if="settingsStore.settings.banner_tentang_url"
       class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-4"
     >
-      <div class="overflow-hidden rounded-xl border border-slate-200/80 shadow-2xs bg-white">
+      <div class="overflow-hidden rounded-2xl border border-slate-100 shadow-sm bg-slate-50">
         <img
           :src="settingsStore.settings.banner_tentang_url"
           alt="Dokumentasi Tentang Muktamar"
-          class="w-full h-64 sm:h-96 lg:h-[440px] object-cover object-center"
+          class="w-full h-auto max-h-[520px] object-cover object-center"
         />
       </div>
       <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2.5 px-1 italic">
@@ -45,8 +45,8 @@ const settingsStore = useSettingsStore()
       </div>
     </div>
 
-    <!-- Section Block 1: Struktur & Dimensi Utama (Matching Screenshot Layout) -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 border-b border-slate-200/80">
+    <!-- Section Block 1: Struktur & Dimensi Utama -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 border-b border-slate-100">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         <!-- Kolom Kiri: Overline & Judul Besar -->
         <div class="lg:col-span-5 space-y-2">
@@ -66,7 +66,7 @@ const settingsStore = useSettingsStore()
           </p>
 
           <!-- Structured Rows (Matching PBNU / PWNU / PCNU table in screenshot) -->
-          <div class="border-t border-slate-200/90 divide-y divide-slate-200/80">
+          <div class="border-t border-slate-200/80 divide-y divide-slate-100">
             <!-- Row 1 -->
             <div class="py-4 sm:py-5 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-6 items-baseline">
               <div class="sm:col-span-5">
@@ -116,8 +116,8 @@ const settingsStore = useSettingsStore()
       </div>
     </div>
 
-    <!-- Section Block 2: Sekilas & Visi Sejarah (Matching Screenshot's "Khidmah sejak 1926" block) -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+    <!-- Section Block 2: Sekilas & Visi Sejarah -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         <!-- Kolom Kiri -->
         <div class="lg:col-span-5 space-y-2">
@@ -141,7 +141,7 @@ const settingsStore = useSettingsStore()
 
           <!-- Quote Card / Aksen Tagline -->
           <div class="pt-2">
-            <div class="p-5 sm:p-6 rounded-xl border border-slate-200/90 bg-white shadow-2xs border-l-4 border-l-[#008f8a]">
+            <div class="p-5 sm:p-6 rounded-2xl border border-slate-100 bg-slate-50/80 shadow-2xs border-l-4 border-l-[#008f8a]">
               <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                 {{ settingsStore.settings.about_quote_label || 'TEMA RESMI MUKTAMAR KE-35' }}
               </span>

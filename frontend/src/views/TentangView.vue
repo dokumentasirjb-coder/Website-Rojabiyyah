@@ -14,7 +14,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[#faf9f6] text-slate-900 font-sans">
+  <div class="min-h-screen flex flex-col bg-white text-slate-900 font-sans">
     <Navbar />
     <main class="flex-1">
       <TentangSection />
