@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { useRouter, RouterLink, useRoute } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { 
   MapPin, 
   Mail, 
   Phone, 
   Clock, 
-  Shield, 
   ChevronRight
 } from 'lucide-vue-next'
 import SocialIcons from '@/components/SocialIcons.vue'
@@ -66,11 +65,8 @@ function handleNav(targetPath: string) {
               </svg>
             </div>
             <div>
-              <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block leading-tight">
-                {{ settingsStore.settings.site_title || 'Muktamar Ke-35' }}
-              </span>
               <span class="font-bold text-lg text-white block leading-none">
-                {{ settingsStore.settings.site_subtitle || 'Nahdlatul Ulama' }}
+                {{ (settingsStore.settings.site_title && !settingsStore.settings.site_title.includes('Muktamar')) ? settingsStore.settings.site_title : 'Panitia Rojabiyyah' }}
               </span>
             </div>
           </div>
@@ -190,16 +186,6 @@ function handleNav(targetPath: string) {
             <li>
               <button
                 type="button"
-                @click="handleNav('/tentang')"
-                class="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left"
-              >
-                <ChevronRight class="w-3 h-3 text-[#008f8a]" />
-                <span>Tentang Muktamar</span>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
                 @click="handleNav('/agenda')"
                 class="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left"
               >
@@ -278,11 +264,6 @@ function handleNav(targetPath: string) {
         </div>
 
         <div class="flex items-center gap-4 text-slate-400">
-          <RouterLink to="/admin/content" class="hover:text-emerald-400 transition-colors flex items-center gap-1 text-[#008f8a]">
-            <Shield class="w-3.5 h-3.5" />
-            <span>Panel CMS</span>
-          </RouterLink>
-          <span>•</span>
           <a href="#" class="hover:text-slate-200 transition-colors">Kebijakan Privasi</a>
           <span>•</span>
           <a href="#" class="hover:text-slate-200 transition-colors">Syarat & Ketentuan</a>

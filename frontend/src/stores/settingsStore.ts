@@ -292,8 +292,8 @@ export const DEFAULT_SCHEDULE_DAYS: ScheduleDay[] = [
 ]
 
 const DEFAULT_SETTINGS: SiteSettings = {
-  site_title: 'Muktamar Ke-35',
-  site_subtitle: 'Nahdlatul Ulama',
+  site_title: 'Panitia Rojabiyyah',
+  site_subtitle: 'Haul Abah',
   navbar_badge: '35',
   favicon_url: '/favicon.svg',
   logo_image_url: '',
@@ -346,7 +346,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   gallery_subtitle: 'Dokumentasi visual rangkaian peristiwa, kebersamaan para ulama, dan momen bersejarah di Jombang.',
   footer_description: 'Portal resmi penyelenggaraan Muktamar ke-35 Nahdlatul Ulama (NU). Wadah permusyawaratan tertinggi para ulama nusantara dalam merawat tradisi keilmuan dan mengawal kemaslahatan bangsa.',
   footer_quote: '“Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa”',
-  footer_copyright: 'Perkumpulan Nahdlatul Ulama',
+  footer_copyright: 'Panitia Rojabiyyah',
   contact_address: 'Kompleks Pondok Pesantren Bahrul Ulum, Tambakberas, Kec. Jombang, Kab. Jombang, Jawa Timur 61451',
   contact_email: 'muktamar@nu.id',
   contact_phone: '+62 (0321) 8899-7700',
