@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
 import { useSettingsStore, DEFAULT_SCHEDULE_DAYS, DEFAULT_GALLERY_ALBUMS, DEFAULT_ABOUT_STRUCTURE_ITEMS, DEFAULT_ABOUT_HISTORY_PARAGRAPHS } from '@/stores/settingsStore'
 import { useNewsStore } from '@/stores/newsStore'
+import { useTabarukanStore, type TabarukanItem, type SecretariatContact } from '@/stores/tabarukanStore'
 import type { GalleryPhoto, GalleryAlbum, GalleryPhotoItem, Article, ScheduleDay, ScheduleItem, AboutStructureItem, AboutParagraphItem } from '@/types'
 import { 
   Layers, 
@@ -48,19 +49,158 @@ import {
   BookmarkCheck,
   Maximize2,
   Minimize2,
-  Send
+  Send,
+  ShoppingBag,
+  PhoneCall,
+  MessageCircle,
+  Info
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 const settingsStore = useSettingsStore()
 const newsStore = useNewsStore()
+const tabarukanStore = useTabarukanStore()
 
-const activeTab = ref<'ringkasan' | 'beranda' | 'tentang' | 'agenda' | 'berita' | 'galeri'>('ringkasan')
+const activeTab = ref<'ringkasan' | 'beranda' | 'tentang' | 'agenda' | 'berita' | 'galeri' | 'informasi'>('ringkasan')
 const showToast = ref(false)
 const toastMessage = ref('')
 
 const formSettings = reactive({ ...settingsStore.settings })
+
+// ============================================================
+// TABARUKAN & CP KESEKRETARIATAN STATE & METHODS
+// ============================================================
+const isTabarukanModalOpen = ref(false)
+const isEditingTabarukan = ref(false)
+const tabarukanForm = reactive({
+  id: undefined as number | undefined,
+  title: '',
+  category: 'Merchandise',
+  description: '',
+  image_url: '',
+  price_info: 'Infaq Tabarukan: Rp ',
+  contact_wa: '6281234567890'
+})
+
+function openAddTabarukan() {
+  isEditingTabarukan.value = false
+  tabarukanForm.id = undefined
+  tabarukanForm.title = ''
+  tabarukanForm.category = 'Merchandise'
+  tabarukanForm.description = ''
+  tabarukanForm.image_url = ''
+  tabarukanForm.price_info = 'Infaq Tabarukan: Rp '
+  tabarukanForm.contact_wa = '6281234567890'
+  isTabarukanModalOpen.value = true
+}
+
+function openEditTabarukan(item: TabarukanItem) {
+  isEditingTabarukan.value = true
+  tabarukanForm.id = item.id
+  tabarukanForm.title = item.title
+  tabarukanForm.category = item.category || 'Merchandise'
+  tabarukanForm.description = item.description || ''
+  tabarukanForm.image_url = item.image_url || ''
+  tabarukanForm.price_info = item.price_info || ''
+  tabarukanForm.contact_wa = item.contact_wa || '6281234567890'
+  isTabarukanModalOpen.value = true
+}
+
+function saveTabarukan() {
+  if (!tabarukanForm.title.trim()) {
+    alert('Judul / Nama Tabarukan wajib diisi.')
+    return
+  }
+  tabarukanStore.saveTabarukanItem({
+    id: tabarukanForm.id,
+    title: tabarukanForm.title.trim(),
+    category: tabarukanForm.category.trim(),
+    description: tabarukanForm.description.trim(),
+    image_url: tabarukanForm.image_url.trim() || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+    price_info: tabarukanForm.price_info.trim(),
+    contact_wa: tabarukanForm.contact_wa.trim()
+  })
+  isTabarukanModalOpen.value = false
+  toastMessage.value = isEditingTabarukan.value ? 'Tabarukan berhasil diperbarui!' : 'Tabarukan baru berhasil ditambahkan!'
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 3000)
+}
+
+function handleDeleteTabarukan(item: TabarukanItem) {
+  if (confirm(`Hapus item tabarukan "${item.title}"?`)) {
+    tabarukanStore.deleteTabarukanItem(item.id)
+    toastMessage.value = 'Item tabarukan berhasil dihapus.'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3000)
+  }
+}
+
+// CP Kesekretariatan
+const isCPModalOpen = ref(false)
+const isEditingCP = ref(false)
+const cpForm = reactive({
+  id: undefined as number | undefined,
+  name: '',
+  role: '',
+  division: 'Sekretariat Utama',
+  phone: '',
+  whatsapp: '',
+  email: ''
+})
+
+function openAddCP() {
+  isEditingCP.value = false
+  cpForm.id = undefined
+  cpForm.name = ''
+  cpForm.role = ''
+  cpForm.division = 'Sekretariat Utama'
+  cpForm.phone = '+62 '
+  cpForm.whatsapp = '62'
+  cpForm.email = ''
+  isCPModalOpen.value = true
+}
+
+function openEditCP(cp: SecretariatContact) {
+  isEditingCP.value = true
+  cpForm.id = cp.id
+  cpForm.name = cp.name
+  cpForm.role = cp.role
+  cpForm.division = cp.division
+  cpForm.phone = cp.phone
+  cpForm.whatsapp = cp.whatsapp
+  cpForm.email = cp.email || ''
+  isCPModalOpen.value = true
+}
+
+function saveCP() {
+  if (!cpForm.name.trim()) {
+    alert('Nama Narahubung wajib diisi.')
+    return
+  }
+  tabarukanStore.saveCP({
+    id: cpForm.id,
+    name: cpForm.name.trim(),
+    role: cpForm.role.trim() || 'Staf Kesekretariatan',
+    division: cpForm.division.trim() || 'Sekretariat Utama',
+    phone: cpForm.phone.trim(),
+    whatsapp: (cpForm.whatsapp || cpForm.phone).replace(/[^0-9]/g, ''),
+    email: cpForm.email.trim()
+  })
+  isCPModalOpen.value = false
+  toastMessage.value = isEditingCP.value ? 'Kontak panitia berhasil diperbarui!' : 'Kontak panitia baru berhasil ditambahkan!'
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 3000)
+}
+
+function handleDeleteCP(cp: SecretariatContact) {
+  if (confirm(`Hapus kontak narahubung "${cp.name}"?`)) {
+    tabarukanStore.deleteCP(cp.id)
+    toastMessage.value = 'Kontak narahubung berhasil dihapus.'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3000)
+  }
+}
 
 // ============================================================
 // AGENDA INTERACTIVE MANAGEMENT
@@ -741,7 +881,7 @@ function handleClearAllArticles() {
   }
 }
 
-function switchTab(tab: 'ringkasan' | 'beranda' | 'tentang' | 'agenda' | 'berita' | 'galeri') {
+function switchTab(tab: 'ringkasan' | 'beranda' | 'tentang' | 'agenda' | 'berita' | 'galeri' | 'informasi') {
   activeTab.value = tab
   if (tab === 'berita') {
     newsMode.value = 'list'
@@ -1054,7 +1194,7 @@ onMounted(async () => {
   initAboutContent()
 
   if (route.query.tab) {
-    const validTabs = ['ringkasan', 'beranda', 'tentang', 'agenda', 'berita', 'galeri']
+    const validTabs = ['ringkasan', 'beranda', 'tentang', 'agenda', 'berita', 'galeri', 'informasi']
     if (validTabs.includes(route.query.tab as string)) {
       activeTab.value = route.query.tab as any
     }
@@ -1071,7 +1211,7 @@ onUnmounted(() => {
 
 watch(() => route.query.tab, (newTab) => {
   if (newTab) {
-    const validTabs = ['ringkasan', 'beranda', 'tentang', 'agenda', 'berita', 'galeri']
+    const validTabs = ['ringkasan', 'beranda', 'tentang', 'agenda', 'berita', 'galeri', 'informasi']
     if (validTabs.includes(newTab as string)) {
       activeTab.value = newTab as any
       if (activeTab.value === 'berita') {
@@ -1236,6 +1376,15 @@ async function saveSettings(tabLabel: string) {
           :class="[activeTab === 'beranda' ? 'bg-[#008f8a] text-white shadow-sm' : 'bg-[#0d261e] text-slate-300 hover:bg-[#13352a]']"
         >
           Beranda
+        </button>
+
+        <button
+          type="button"
+          @click="switchTab('informasi')"
+          class="px-4 py-2 rounded-lg font-semibold transition-all shrink-0 cursor-pointer"
+          :class="[activeTab === 'informasi' ? 'bg-[#008f8a] text-white shadow-sm' : 'bg-[#0d261e] text-slate-300 hover:bg-[#13352a]']"
+        >
+          Informasi Umum
         </button>
       </div>
 
@@ -3404,6 +3553,226 @@ async function saveSettings(tabLabel: string) {
           </div>
         </div>
       </div>
+
+      <!-- ============================================================ -->
+      <!-- TAB 7: INFORMASI UMUM (TABARUKAN, CP KESEKRETARIATAN, PETA) -->
+      <!-- ============================================================ -->
+      <div v-show="activeTab === 'informasi'" class="space-y-8">
+        <!-- Header Info -->
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] text-slate-400 font-medium">Dashboard / Konten Situs / Informasi Umum</div>
+            <h2 class="text-xl font-bold text-white mt-1">Kelola Informasi Umum</h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Kelola item Tabarukan (ukuran Feed IG), Kontak Person (CP) Kesekretariatan, dan panduan Peta Lokasi.
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              @click="openAddTabarukan"
+              class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <ShoppingBag class="w-4 h-4" />
+              <span>+ Tambah Tabarukan (Feed IG)</span>
+            </button>
+            <button
+              type="button"
+              @click="openAddCP"
+              class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <PhoneCall class="w-4 h-4" />
+              <span>+ Tambah CP Panitia</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. TABARUKAN KHIDMAH (FEED IG SIZE) -->
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-6">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 mb-1">
+                <ShoppingBag class="w-3.5 h-3.5" />
+                <span>Format Feed Instagram (1:1 Square)</span>
+              </div>
+              <h3 class="text-base font-bold text-white">
+                Daftar Tabarukan Haul & Rojabiyyah
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Foto diunggah dan ditampilkan rapi dengan rasio persegi Feed IG, memuat nama cinderamata, infaq, dan tombol WhatsApp.
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="openAddTabarukan"
+              class="px-3.5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus class="w-4 h-4" />
+              <span>Tambah Item</span>
+            </button>
+          </div>
+
+          <!-- Tabarukan Grid Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <div
+              v-for="item in tabarukanStore.tabarukanItems"
+              :key="item.id"
+              class="bg-[#071913] border border-[#143d30] rounded-2xl overflow-hidden flex flex-col justify-between group hover:border-emerald-500/40 transition-all"
+            >
+              <!-- Foto Ukuran Feed IG -->
+              <div class="relative aspect-square w-full bg-black/40 overflow-hidden">
+                <img
+                  :src="item.image_url"
+                  :alt="item.title"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-[10px] text-white font-bold uppercase tracking-wider">
+                  {{ item.category }}
+                </span>
+              </div>
+
+              <!-- Body Info -->
+              <div class="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                <div>
+                  <h4 class="font-bold text-xs text-white line-clamp-1">
+                    {{ item.title }}
+                  </h4>
+                  <div class="text-[11px] font-bold text-emerald-400 mt-1">
+                    {{ item.price_info || 'Infaq Tabarukan' }}
+                  </div>
+                  <p class="text-[11px] text-slate-400 line-clamp-2 mt-1">
+                    {{ item.description }}
+                  </p>
+                </div>
+
+                <div class="pt-3 border-t border-[#143d30] flex items-center justify-between">
+                  <span class="text-[10px] text-slate-400">
+                    WA: {{ item.contact_wa || '-' }}
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      @click="openEditTabarukan(item)"
+                      class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-xs cursor-pointer"
+                      title="Ubah Tabarukan"
+                    >
+                      <Edit3 class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="handleDeleteTabarukan(item)"
+                      class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                      title="Hapus Tabarukan"
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. CONTACT PERSON (CP) KESEKRETARIATAN -->
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-6">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 mb-1">
+                <PhoneCall class="w-3.5 h-3.5" />
+                <span>Layanan Kontak Panitia</span>
+              </div>
+              <h3 class="text-base font-bold text-white">
+                Contact Person (CP) Kesekretariatan
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Daftar narahubung panitia untuk melayani pertanyaan santri, alumni, dan tamu undangan via telepon/WhatsApp.
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="openAddCP"
+              class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus class="w-4 h-4" />
+              <span>Tambah Narahubung</span>
+            </button>
+          </div>
+
+          <!-- CP Table / Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div
+              v-for="cp in tabarukanStore.cpList"
+              :key="cp.id"
+              class="bg-[#071913] border border-[#143d30] rounded-2xl p-5 flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider block w-fit mb-2">
+                  {{ cp.division }}
+                </span>
+                <h4 class="font-bold text-sm text-white leading-snug">
+                  {{ cp.name }}
+                </h4>
+                <p class="text-xs text-slate-400 mt-0.5 font-medium">
+                  {{ cp.role }}
+                </p>
+                <div class="mt-2 text-xs text-slate-300 font-mono flex items-center gap-1.5">
+                  <PhoneCall class="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{{ cp.phone }}</span>
+                </div>
+              </div>
+
+              <div class="pt-3 border-t border-[#143d30] flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  @click="openEditCP(cp)"
+                  class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit3 class="w-3.5 h-3.5" />
+                  <span>Ubah</span>
+                </button>
+                <button
+                  type="button"
+                  @click="handleDeleteCP(cp)"
+                  class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                  title="Hapus CP"
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. PETA & LOKASI ACARA -->
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-5">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <div>
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
+                Peta & Lokasi Acara
+              </span>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Lokasi terhubung ke Google Maps Pondok Pesantren Bahrul Ulum Tambakberas Jombang.
+              </p>
+            </div>
+            <a
+              href="/informasi"
+              target="_blank"
+              class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Lihat Halaman Publik</span>
+              <ExternalLink class="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[#071913] border border-[#143d30] text-xs text-slate-300 flex items-start gap-3">
+            <MapPin class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <strong class="text-white block font-bold mb-0.5">Pondok Pesantren Bahrul 'Ulum Tambakberas Jombang</strong>
+              <span>Jl. KH. Wahab Chasbullah, Tambakrejo, Kec. Jombang, Jawa Timur 61451. Dilengkapi rute kedatangan dari Stasiun Kereta Api Jombang dan Exit Tol Tembelang.</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================================ -->
@@ -3710,6 +4079,237 @@ async function saveSettings(tabLabel: string) {
             >
               <CheckCircle2 class="w-4 h-4" />
               <span>Sisipkan Foto</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: ADD / EDIT TABARUKAN (FEED IG SIZE) -->
+    <!-- ============================================================ -->
+    <Teleport to="body">
+      <div
+        v-if="isTabarukanModalOpen"
+        class="fixed inset-0 bg-black/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+      >
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl max-h-[92vh] overflow-y-auto">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <ShoppingBag class="w-4 h-4" />
+              <span>{{ isEditingTabarukan ? 'Edit Item Tabarukan' : 'Tambah Item Tabarukan Baru (Feed IG)' }}</span>
+            </h3>
+            <button @click="isTabarukanModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Upload Foto Feed IG (1:1 Square) -->
+            <ImageUploadInput
+              v-model="tabarukanForm.image_url"
+              label="Foto Tabarukan (Ukuran Feed IG Persegi 1:1) *"
+              description="Unggah foto produk/cinderamata dari komputer. Format feed IG 1:1."
+              aspect="square"
+            />
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Nama / Judul Tabarukan *
+              </label>
+              <input
+                v-model="tabarukanForm.title"
+                type="text"
+                placeholder="Contoh: Kaos Resmi Haul Abah & Rojabiyyah 2026"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Kategori
+                </label>
+                <input
+                  v-model="tabarukanForm.category"
+                  type="text"
+                  placeholder="Contoh: Merchandise / Kitab / Atribut"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Keterangan Infaq Tabarukan
+                </label>
+                <input
+                  v-model="tabarukanForm.price_info"
+                  type="text"
+                  placeholder="Contoh: Infaq Tabarukan: Rp 85.000"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                No. WhatsApp Pemesanan
+              </label>
+              <input
+                v-model="tabarukanForm.contact_wa"
+                type="text"
+                placeholder="Contoh: 6281234567890"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+              />
+              <p class="text-[10px] text-slate-400 mt-1">Gunakan kode negara (62). Pengunjung dapat langsung klik pesan ke nomor ini.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Deskripsi / Keterangan Produk
+              </label>
+              <textarea
+                v-model="tabarukanForm.description"
+                rows="3"
+                placeholder="Tuliskan bahan, ukuran, dan penjelasan cinderamata..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+            <button
+              type="button"
+              @click="isTabarukanModalOpen = false"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="saveTabarukan"
+              class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <CheckCircle2 class="w-4 h-4" />
+              <span>Simpan Tabarukan</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: ADD / EDIT CP KESEKRETARIATAN -->
+    <!-- ============================================================ -->
+    <Teleport to="body">
+      <div
+        v-if="isCPModalOpen"
+        class="fixed inset-0 bg-black/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+      >
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <PhoneCall class="w-4 h-4" />
+              <span>{{ isEditingCP ? 'Edit Kontak Narahubung' : 'Tambah Kontak Narahubung Baru' }}</span>
+            </h3>
+            <button @click="isCPModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Nama Narahubung / Panitia *
+              </label>
+              <input
+                v-model="cpForm.name"
+                type="text"
+                placeholder="Contoh: Ustadz Ahmad Fauzi, S.Pd.I"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Peran / Jabatan
+                </label>
+                <input
+                  v-model="cpForm.role"
+                  type="text"
+                  placeholder="Contoh: Koordinator Kesekretariatan"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Divisi / Seksi
+                </label>
+                <input
+                  v-model="cpForm.division"
+                  type="text"
+                  placeholder="Contoh: Sekretariat Utama / Akomodasi"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Nomor Telepon
+                </label>
+                <input
+                  v-model="cpForm.phone"
+                  type="text"
+                  placeholder="Contoh: +62 812-3456-7890"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Nomor WhatsApp
+                </label>
+                <input
+                  v-model="cpForm.whatsapp"
+                  type="text"
+                  placeholder="Contoh: 6281234567890"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Email (Opsional)
+              </label>
+              <input
+                v-model="cpForm.email"
+                type="email"
+                placeholder="Contoh: sekretariat@rojabiyyah.id"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+            <button
+              type="button"
+              @click="isCPModalOpen = false"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="saveCP"
+              class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <CheckCircle2 class="w-4 h-4" />
+              <span>Simpan Narahubung</span>
             </button>
           </div>
         </div>

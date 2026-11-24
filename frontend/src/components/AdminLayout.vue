@@ -15,7 +15,8 @@ import {
   Menu, 
   X,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -188,6 +189,23 @@ async function handleLogout() {
                 :class="[route.query.tab === 'galeri' || route.path.startsWith('/admin/gallery') ? 'text-[#008f8a]' : 'text-slate-300 group-hover:text-white']" 
               />
               <span>Galeri Foto</span>
+            </RouterLink>
+
+            <RouterLink
+              to="/admin/content?tab=informasi"
+              @click="isMobileSidebarOpen = false"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-all group"
+              :class="[
+                route.query.tab === 'informasi'
+                  ? 'bg-white text-slate-900 font-bold shadow-sm'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              ]"
+            >
+              <Info 
+                class="w-4 h-4 transition-colors" 
+                :class="[route.query.tab === 'informasi' ? 'text-[#008f8a]' : 'text-slate-300 group-hover:text-white']" 
+              />
+              <span>Informasi Umum</span>
             </RouterLink>
 
             <RouterLink

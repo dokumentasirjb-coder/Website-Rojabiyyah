@@ -15,6 +15,7 @@ const currentTab = computed(() => {
   if (p === '/agenda') return 'agenda'
   if (p === '/berita' || p.startsWith('/artikel/')) return 'berita'
   if (p === '/galeri') return 'galeri'
+  if (p === '/informasi') return 'informasi'
   return 'beranda'
 })
 
@@ -181,6 +182,19 @@ function navigateTo(targetPath: string) {
             Galeri
           </button>
 
+          <button
+            type="button"
+            @click="navigateTo('/informasi')"
+            class="transition-colors pb-1 cursor-pointer"
+            :class="[
+              currentTab === 'informasi'
+                ? (isDarkNavbar ? 'text-white font-bold border-b-2 border-white' : 'text-[#008f8a] font-semibold border-b-2 border-[#008f8a]')
+                : (isDarkNavbar ? 'hover:text-white' : 'hover:text-[#008f8a]')
+            ]"
+          >
+            Informasi Umum
+          </button>
+
           <RouterLink
             to="/admin/settings"
             class="inline-flex items-center gap-1 text-[11px] font-semibold transition-colors ml-2"
@@ -294,6 +308,20 @@ function navigateTo(targetPath: string) {
       >
         <span>Galeri</span>
         <span v-if="currentTab === 'galeri'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
+      </button>
+
+      <button
+        type="button"
+        @click="navigateTo('/informasi')"
+        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
+        :class="[
+          currentTab === 'informasi'
+            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
+            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
+        ]"
+      >
+        <span>Informasi Umum</span>
+        <span v-if="currentTab === 'informasi'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
       </button>
 
       <div 

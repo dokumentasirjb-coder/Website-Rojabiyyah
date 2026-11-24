@@ -213,6 +213,16 @@ function handleNav(targetPath: string) {
                 <span>Galeri Foto</span>
               </button>
             </li>
+            <li>
+              <button
+                type="button"
+                @click="handleNav('/informasi')"
+                class="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+              >
+                <ChevronRight class="w-3 h-3 text-[#008f8a]" />
+                <span>Informasi Umum</span>
+              </button>
+            </li>
           </ul>
         </div>
 

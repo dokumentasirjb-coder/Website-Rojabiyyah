@@ -46,6 +46,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/informasi',
+    name: 'informasi',
+    component: () => import('@/views/InformasiView.vue'),
+    meta: {
+      title: 'Informasi Umum — Panitia Rojabiyyah',
+    },
+  },
+  {
     path: '/artikel/:slug',
     name: 'article.detail',
     component: () => import('@/views/ArticleDetailView.vue'),
