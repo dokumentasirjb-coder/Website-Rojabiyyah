@@ -140,18 +140,26 @@ export const useNewsStore = defineStore('news', () => {
   const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
 
   let initialArticles: Article[] = []
-  if (saved !== null) {
+  if (saved) {
     try {
-      initialArticles = JSON.parse(saved)
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        initialArticles = parsed
+      } else {
+        initialArticles = DEFAULT_ARTICLES
+      }
     } catch {
-      initialArticles = []
+      initialArticles = DEFAULT_ARTICLES
     }
-  } else if (!isSeeded) {
-    // Only first time ever: seed defaults once
+  } else {
     initialArticles = DEFAULT_ARTICLES
     if (typeof window !== 'undefined') {
-      localStorage.setItem(SEEDED_KEY, 'true')
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ARTICLES))
+      try {
+        localStorage.setItem(SEEDED_KEY, 'true')
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ARTICLES))
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -270,7 +278,8 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
-  function saveArticle(articleData: Partial<Article>) {
+  async function saveArticle(articleData: Partial<Article>) {
+    let savedArticle: Article | null = null
     if (articleData.id) {
       // Update existing
       const idx = articles.value.findIndex(a => a.id === articleData.id)
@@ -285,12 +294,13 @@ export const useNewsStore = defineStore('news', () => {
           metaDescription: articleData.metaDescription !== undefined ? articleData.metaDescription : articles.value[idx].metaDescription,
           mediaMap: articleData.mediaMap !== undefined ? articleData.mediaMap : (articles.value[idx].mediaMap || {})
         } as Article
+        savedArticle = articles.value[idx]
       }
     } else {
       // Create new article
       const newId = Date.now()
       const newSlug = articleData.slug || articleData.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || `berita-${newId}`
-      const newArticle: Article = {
+      savedArticle = {
         id: newId,
         title: articleData.title || 'Judul Berita',
         slug: newSlug,
@@ -315,9 +325,34 @@ export const useNewsStore = defineStore('news', () => {
         published_at_formatted: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         reading_time: `${Math.max(1, Math.ceil((articleData.content?.length || 500) / 500))} menit baca`
       }
-      articles.value.unshift(newArticle)
+      articles.value.unshift(savedArticle)
     }
     persist()
+
+    // Upaya sinkronisasi ke backend API (jika server Laravel aktif)
+    try {
+      const payload = {
+        title: articleData.title,
+        content: articleData.content,
+        excerpt: articleData.excerpt,
+        status: articleData.status || 'published',
+        is_featured: articleData.is_featured ? 1 : 0,
+        category_id: articleData.category?.id || 1,
+        slug: articleData.slug
+      }
+      if (articleData.id && typeof articleData.id === 'number' && articleData.id < 1000000000) {
+        await api.put(`/admin/articles/${articleData.id}`, payload)
+      } else {
+        const res = await api.post('/admin/articles', payload)
+        if (res.data?.data?.id && savedArticle) {
+          savedArticle.id = res.data.data.id
+          persist()
+        }
+      }
+    } catch {
+      // Offline fallback: tetap sukses tersimpan di memori & localStorage
+    }
+
     return true
   }
 

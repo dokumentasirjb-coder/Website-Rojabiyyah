@@ -498,7 +498,7 @@ function openAddArticle() {
   articleForm.tags = 'Muktamar, Nahdlatul Ulama'
   articleForm.metaTitle = ''
   articleForm.metaDescription = ''
-  articleForm.cover_image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'
+  articleForm.cover_image = ''
   articleForm.status = 'published'
   newsMode.value = 'form'
 }
@@ -562,6 +562,9 @@ function handleSaveArticle(targetStatus?: 'published' | 'draft') {
   }
 
   const finalSlug = (articleForm.slug || generateSlug(articleForm.title)) || `berita-${Date.now()}`
+  const finalCover = (articleForm.cover_image && articleForm.cover_image.trim())
+    ? articleForm.cover_image.trim()
+    : 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'
 
   newsStore.saveArticle({
     id: articleForm.id,
@@ -569,8 +572,8 @@ function handleSaveArticle(targetStatus?: 'published' | 'draft') {
     slug: finalSlug,
     excerpt: articleForm.excerpt.trim(),
     content: articleForm.content,
-    cover_image: articleForm.cover_image,
-    cover_image_url: articleForm.cover_image,
+    cover_image: finalCover,
+    cover_image_url: finalCover,
     status: articleForm.status,
     tags: articleForm.tags,
     metaTitle: articleForm.metaTitle,
@@ -628,31 +631,58 @@ function handleInsertArticleImage(e: Event) {
 
     const img = new Image()
     img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let width = img.width
-      let height = img.height
-      const MAX_WIDTH = 1200
-      if (width > MAX_WIDTH) {
-        height = Math.round((height * MAX_WIDTH) / width)
-        width = MAX_WIDTH
-      }
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height)
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85)
+      try {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+        const MAX_WIDTH = 1200
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width)
+          width = MAX_WIDTH
+        }
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85)
 
-        imageModalForm.base64 = compressedBase64
-        imageModalForm.previewUrl = compressedBase64
-        imageModalForm.caption = cleanName || 'Dokumentasi Acara'
-        imageModalForm.fileName = file.name
-        imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
-        isImageModalOpen.value = true
+          imageModalForm.base64 = compressedBase64
+          imageModalForm.previewUrl = compressedBase64
+          imageModalForm.caption = cleanName || 'Dokumentasi Acara'
+          imageModalForm.fileName = file.name
+          imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
+          isImageModalOpen.value = true
+          return
+        }
+      } catch (err) {
+        console.warn('Canvas compression fallback to raw:', err)
       }
+
+      imageModalForm.base64 = rawResult
+      imageModalForm.previewUrl = rawResult
+      imageModalForm.caption = cleanName || 'Dokumentasi Acara'
+      imageModalForm.fileName = file.name
+      imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
+      isImageModalOpen.value = true
     }
+
+    img.onerror = () => {
+      imageModalForm.base64 = rawResult
+      imageModalForm.previewUrl = rawResult
+      imageModalForm.caption = cleanName || 'Dokumentasi Acara'
+      imageModalForm.fileName = file.name
+      imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
+      isImageModalOpen.value = true
+    }
+
     img.src = rawResult
   }
+
+  reader.onerror = () => {
+    alert('Gagal membaca file gambar dari komputer.')
+  }
+
   reader.readAsDataURL(file)
   target.value = ''
 }
@@ -2176,6 +2206,22 @@ async function saveSettings(tabLabel: string) {
               </div>
             </div>
 
+            <!-- Upload Foto Sampul Berita (Utama) -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-[#071913] border border-[#143d30] space-y-3">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-white flex items-center gap-2">
+                  <ImageIcon class="w-4 h-4 text-emerald-400" />
+                  <span>Foto Sampul Berita (Utama) *</span>
+                </label>
+                <span class="text-[10px] text-emerald-400/90 font-medium">JPG, PNG, atau WebP</span>
+              </div>
+              <ImageUploadInput
+                v-model="articleForm.cover_image"
+                description="Pilih foto sampul berita langsung dari laptop/komputer Anda untuk kartu berita dan banner artikel."
+                aspect="wide"
+              />
+            </div>
+
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label class="text-xs font-bold text-slate-300">
@@ -3536,221 +3582,225 @@ async function saveSettings(tabLabel: string) {
     <!-- ============================================================ -->
     <!-- MODAL: SISIPKAN TAUTAN / BANNER LINK -->
     <!-- ============================================================ -->
-    <div
-      v-if="isLinkModalOpen"
-      class="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-    >
-      <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl">
-        <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
-          <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
-            <Link2 class="w-4 h-4" />
-            <span>Sisipkan Tautan / Banner "Baca Juga"</span>
-          </h3>
-          <button @click="isLinkModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
-            <X class="w-5 h-5" />
-          </button>
-        </div>
+    <Teleport to="body">
+      <div
+        v-if="isLinkModalOpen"
+        class="fixed inset-0 bg-black/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+      >
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <Link2 class="w-4 h-4" />
+              <span>Sisipkan Tautan / Banner "Baca Juga"</span>
+            </h3>
+            <button @click="isLinkModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
 
-        <div class="space-y-4">
-          <!-- Pilihan Tipe -->
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1.5">
-              Tipe Tautan
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                @click="linkModalForm.type = 'inline'"
-                :class="[
-                  'p-3 rounded-xl border text-xs font-semibold text-left transition-all cursor-pointer',
-                  linkModalForm.type === 'inline' 
-                    ? 'bg-[#008f8a]/20 border-[#008f8a] text-white shadow-xs' 
-                    : 'bg-[#071913] border-[#143d30] text-slate-400 hover:text-slate-200'
-                ]"
-              >
-                <div class="font-bold text-emerald-400 mb-0.5">Link Teks Biasa</div>
-                <div class="text-[10px] text-slate-400">Tautan inline di tengah kalimat / paragraf</div>
-              </button>
-              <button
-                type="button"
-                @click="linkModalForm.type = 'banner'"
-                :class="[
-                  'p-3 rounded-xl border text-xs font-semibold text-left transition-all cursor-pointer',
-                  linkModalForm.type === 'banner' 
-                    ? 'bg-[#008f8a]/20 border-[#008f8a] text-white shadow-xs' 
-                    : 'bg-[#071913] border-[#143d30] text-slate-400 hover:text-slate-200'
-                ]"
-              >
-                <div class="font-bold text-emerald-400 mb-0.5">Banner "Baca Juga"</div>
-                <div class="text-[10px] text-slate-400">Kotak sorotan banner seperti portal berita</div>
-              </button>
+          <div class="space-y-4">
+            <!-- Pilihan Tipe -->
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">
+                Tipe Tautan
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  @click="linkModalForm.type = 'inline'"
+                  :class="[
+                    'p-3 rounded-xl border text-xs font-semibold text-left transition-all cursor-pointer',
+                    linkModalForm.type === 'inline' 
+                      ? 'bg-[#008f8a]/20 border-[#008f8a] text-white shadow-xs' 
+                      : 'bg-[#071913] border-[#143d30] text-slate-400 hover:text-slate-200'
+                  ]"
+                >
+                  <div class="font-bold text-emerald-400 mb-0.5">Link Teks Biasa</div>
+                  <div class="text-[10px] text-slate-400">Tautan inline di tengah kalimat / paragraf</div>
+                </button>
+                <button
+                  type="button"
+                  @click="linkModalForm.type = 'banner'"
+                  :class="[
+                    'p-3 rounded-xl border text-xs font-semibold text-left transition-all cursor-pointer',
+                    linkModalForm.type === 'banner' 
+                      ? 'bg-[#008f8a]/20 border-[#008f8a] text-white shadow-xs' 
+                      : 'bg-[#071913] border-[#143d30] text-slate-400 hover:text-slate-200'
+                  ]"
+                >
+                  <div class="font-bold text-emerald-400 mb-0.5">Banner "Baca Juga"</div>
+                  <div class="text-[10px] text-slate-400">Kotak sorotan banner seperti portal berita</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Teks Tautan / Judul Banner -->
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                {{ linkModalForm.type === 'banner' ? 'Judul Banner / Berita Terkait *' : 'Teks Tautan *' }}
+              </label>
+              <input
+                v-model="linkModalForm.text"
+                type="text"
+                :placeholder="linkModalForm.type === 'banner' ? 'Contoh: Jadwal Rangkaian Sidang Muktamar Lengkap' : 'Contoh: Klik di sini untuk melihat agenda'"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+              />
+            </div>
+
+            <!-- Subjudul Banner (Opsional jika banner) -->
+            <div v-if="linkModalForm.type === 'banner'">
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Keterangan Tambahan / Subjudul (Opsional)
+              </label>
+              <input
+                v-model="linkModalForm.subtitle"
+                type="text"
+                placeholder="Contoh: Simak waktu, lokasi, dan pimpinan setiap majelis sidang..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <!-- URL / Tujuan Link -->
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Alamat URL (Tujuan Tautan) *
+              </label>
+              <input
+                v-model="linkModalForm.url"
+                type="text"
+                placeholder="Contoh: /agenda atau https://nu.or.id/..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+              />
+              <p class="text-[10px] text-slate-400 mt-1">
+                Gunakan awalan <code>/</code> untuk halaman internal (contoh: <code>/agenda</code>), atau <code>https://</code> untuk link eksternal.
+              </p>
+
+              <!-- Tombol Pintas Halaman Internal -->
+              <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Pintas Cepat:</span>
+                <button
+                  type="button"
+                  @click="selectPresetUrl('/agenda', 'Jadwal Agenda Muktamar')"
+                  class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
+                >
+                  /agenda
+                </button>
+                <button
+                  type="button"
+                  @click="selectPresetUrl('/berita', 'Daftar Warta Berita Muktamar')"
+                  class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
+                >
+                  /berita
+                </button>
+                <button
+                  type="button"
+                  @click="selectPresetUrl('/galeri', 'Galeri Dokumentasi Foto')"
+                  class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
+                >
+                  /galeri
+                </button>
+                <button
+                  type="button"
+                  @click="selectPresetUrl('/tentang', 'Tentang Muktamar ke-35')"
+                  class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
+                >
+                  /tentang
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Teks Tautan / Judul Banner -->
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">
-              {{ linkModalForm.type === 'banner' ? 'Judul Banner / Berita Terkait *' : 'Teks Tautan *' }}
-            </label>
-            <input
-              v-model="linkModalForm.text"
-              type="text"
-              :placeholder="linkModalForm.type === 'banner' ? 'Contoh: Jadwal Rangkaian Sidang Muktamar Lengkap' : 'Contoh: Klik di sini untuk melihat agenda'"
-              class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
-            />
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+            <button
+              type="button"
+              @click="isLinkModalOpen = false"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="applyLinkModal"
+              class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <CheckCircle2 class="w-4 h-4" />
+              <span>Sisipkan ke Naskah</span>
+            </button>
           </div>
-
-          <!-- Subjudul Banner (Opsional jika banner) -->
-          <div v-if="linkModalForm.type === 'banner'">
-            <label class="block text-xs font-bold text-slate-300 mb-1">
-              Keterangan Tambahan / Subjudul (Opsional)
-            </label>
-            <input
-              v-model="linkModalForm.subtitle"
-              type="text"
-              placeholder="Contoh: Simak waktu, lokasi, dan pimpinan setiap majelis sidang..."
-              class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <!-- URL / Tujuan Link -->
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">
-              Alamat URL (Tujuan Tautan) *
-            </label>
-            <input
-              v-model="linkModalForm.url"
-              type="text"
-              placeholder="Contoh: /agenda atau https://nu.or.id/..."
-              class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
-            />
-            <p class="text-[10px] text-slate-400 mt-1">
-              Gunakan awalan <code>/</code> untuk halaman internal (contoh: <code>/agenda</code>), atau <code>https://</code> untuk link eksternal.
-            </p>
-
-            <!-- Tombol Pintas Halaman Internal -->
-            <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Pintas Cepat:</span>
-              <button
-                type="button"
-                @click="selectPresetUrl('/agenda', 'Jadwal Agenda Muktamar')"
-                class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
-              >
-                /agenda
-              </button>
-              <button
-                type="button"
-                @click="selectPresetUrl('/berita', 'Daftar Warta Berita Muktamar')"
-                class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
-              >
-                /berita
-              </button>
-              <button
-                type="button"
-                @click="selectPresetUrl('/galeri', 'Galeri Dokumentasi Foto')"
-                class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
-              >
-                /galeri
-              </button>
-              <button
-                type="button"
-                @click="selectPresetUrl('/tentang', 'Tentang Muktamar ke-35')"
-                class="px-2 py-0.5 rounded-md bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-[#143d30] text-[10px] cursor-pointer"
-              >
-                /tentang
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
-          <button
-            type="button"
-            @click="isLinkModalOpen = false"
-            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            @click="applyLinkModal"
-            class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
-          >
-            <CheckCircle2 class="w-4 h-4" />
-            <span>Sisipkan ke Naskah</span>
-          </button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- ============================================================ -->
     <!-- MODAL: SISIPKAN FOTO ARTIKEL (DENGAN CAPTION & PREVIEW) -->
     <!-- ============================================================ -->
-    <div
-      v-if="isImageModalOpen"
-      class="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-    >
-      <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl">
-        <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
-          <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
-            <ImageIcon class="w-4 h-4" />
-            <span>Sisipkan Foto ke Naskah Berita</span>
-          </h3>
-          <button @click="isImageModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <div class="space-y-4">
-          <!-- Thumbnail Preview -->
-          <div class="relative rounded-2xl overflow-hidden border border-[#143d30] bg-[#071913] max-h-56 flex items-center justify-center">
-            <img :src="imageModalForm.previewUrl" alt="Preview Foto" class="max-h-56 w-full object-cover" />
-            <span class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 text-[10px] text-slate-300 font-mono">
-              {{ imageModalForm.fileSize }}
-            </span>
+    <Teleport to="body">
+      <div
+        v-if="isImageModalOpen"
+        class="fixed inset-0 bg-black/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+      >
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <ImageIcon class="w-4 h-4" />
+              <span>Sisipkan Foto ke Naskah Berita</span>
+            </h3>
+            <button @click="isImageModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+              <X class="w-5 h-5" />
+            </button>
           </div>
 
-          <!-- Input Keterangan Foto -->
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">
-              Keterangan Foto (Caption) *
-            </label>
-            <input
-              v-model="imageModalForm.caption"
-              type="text"
-              placeholder="Contoh: Suasana Pembukaan Muktamar di Pesantren Bahrul Ulum..."
-              class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
-            />
-            <p class="text-[10px] text-slate-400 mt-1">
-              Keterangan ini akan tampil rapi di bagian bawah foto pada halaman pembaca.
-            </p>
+          <div class="space-y-4">
+            <!-- Thumbnail Preview -->
+            <div class="relative rounded-2xl overflow-hidden border border-[#143d30] bg-[#071913] max-h-56 flex items-center justify-center">
+              <img :src="imageModalForm.previewUrl" alt="Preview Foto" class="max-h-56 w-full object-cover" />
+              <span class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 text-[10px] text-slate-300 font-mono">
+                {{ imageModalForm.fileSize }}
+              </span>
+            </div>
+
+            <!-- Input Keterangan Foto -->
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Keterangan Foto (Caption) *
+              </label>
+              <input
+                v-model="imageModalForm.caption"
+                type="text"
+                placeholder="Contoh: Suasana Pembukaan Muktamar di Pesantren Bahrul Ulum..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+              />
+              <p class="text-[10px] text-slate-400 mt-1">
+                Keterangan ini akan tampil rapi di bagian bawah foto pada halaman pembaca.
+              </p>
+            </div>
+
+            <div class="p-3 rounded-xl bg-[#071913] border border-[#143d30] text-[11px] text-slate-300 flex items-start gap-2">
+              <Sparkles class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Foto akan disisipkan dengan kode ringkas rapi di posisi kursor Anda, tanpa membuat naskah tulisan menjadi panjang.</span>
+            </div>
           </div>
 
-          <div class="p-3 rounded-xl bg-[#071913] border border-[#143d30] text-[11px] text-slate-300 flex items-start gap-2">
-            <Sparkles class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-            <span>Foto akan disisipkan dengan kode ringkas rapi di posisi kursor Anda, tanpa membuat naskah tulisan menjadi panjang.</span>
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+            <button
+              type="button"
+              @click="isImageModalOpen = false"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="applyImageModal"
+              class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <CheckCircle2 class="w-4 h-4" />
+              <span>Sisipkan Foto</span>
+            </button>
           </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
-          <button
-            type="button"
-            @click="isImageModalOpen = false"
-            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            @click="applyImageModal"
-            class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
-          >
-            <CheckCircle2 class="w-4 h-4" />
-            <span>Sisipkan Foto</span>
-          </button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
   </AdminLayout>
 </template>
