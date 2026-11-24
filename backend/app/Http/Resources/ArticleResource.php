@@ -24,7 +24,7 @@ class ArticleResource extends JsonResource
         $publishedAt = $this->published_at ? Carbon::parse($this->published_at)->locale('id') : null;
 
         // URL Cover Image Lengkap (dengan fallback placeholder jika null)
-        $defaultPlaceholder = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&auto=format&fit=crop&q=80';
+        $defaultPlaceholder = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=1200&auto=format&fit=crop&q=80';
         $coverImageUrl = $defaultPlaceholder;
 
         if (!empty($this->cover_image)) {

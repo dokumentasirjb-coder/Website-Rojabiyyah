@@ -314,9 +314,29 @@ export const useNewsStore = defineStore('news', () => {
       const response = await api.get<{ data: Article[]; meta?: PaginationMeta }>('/articles', { params })
       if (response.data?.data && response.data.data.length > 0) {
         // Gabungkan artikel dari server dengan artikel lokal yang dibuat pengguna
+        const localMap = new Map(articles.value.map(a => [String(a.id), a]))
+        const localSlugMap = new Map(articles.value.map(a => [a.slug, a]))
+
+        const mergedServerArticles = response.data.data.map(serverArt => {
+          const localArt = localMap.get(String(serverArt.id)) || localSlugMap.get(serverArt.slug)
+          if (localArt) {
+            const hasLocalCover = localArt.cover_image && 
+              (localArt.cover_image.startsWith('data:') || !localArt.cover_image.includes('1585829365295'))
+            const serverHasTypewriter = !serverArt.cover_image || serverArt.cover_image.includes('1585829365295')
+
+            return {
+              ...serverArt,
+              cover_image: (hasLocalCover && serverHasTypewriter) ? localArt.cover_image : (serverArt.cover_image || localArt.cover_image),
+              cover_image_url: (hasLocalCover && serverHasTypewriter) ? (localArt.cover_image_url || localArt.cover_image) : (serverArt.cover_image_url || serverArt.cover_image || localArt.cover_image),
+              mediaMap: { ...(localArt.mediaMap || {}), ...(serverArt.mediaMap || {}) }
+            }
+          }
+          return serverArt
+        })
+
         const remoteIds = new Set(response.data.data.map(a => String(a.id)))
         const localOnly = articles.value.filter(a => !remoteIds.has(String(a.id)))
-        articles.value = deduplicateArticles([...localOnly, ...response.data.data])
+        articles.value = deduplicateArticles([...localOnly, ...mergedServerArticles])
         persist()
       }
     } catch (err: any) {
@@ -444,7 +464,8 @@ export const useNewsStore = defineStore('news', () => {
         status: articleData.status || 'published',
         is_featured: articleData.is_featured ? 1 : 0,
         category_id: articleData.category?.id || 1,
-        slug: articleData.slug
+        slug: articleData.slug,
+        cover_image: cover
       }
       if (articleData.id && typeof articleData.id === 'number' && articleData.id < 1000000000) {
         await api.put(`/admin/articles/${articleData.id}`, payload)

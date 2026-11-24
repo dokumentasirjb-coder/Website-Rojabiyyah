@@ -207,6 +207,15 @@ function formatContent(raw: string, mediaMap?: Record<string, string>): string {
     let actualSrc = src.trim()
     if (mediaMap && mediaMap[actualSrc]) {
       actualSrc = mediaMap[actualSrc]
+    } else if (actualSrc.startsWith('foto_') || !actualSrc.includes('/')) {
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
+          if (cached[actualSrc]) {
+            actualSrc = cached[actualSrc]
+          }
+        } catch {}
+      }
     }
     const cap = alt ? `<figcaption class="text-center text-xs text-slate-500 py-2.5 px-4 font-medium italic border-t border-slate-100 bg-white/70">📷 ${alt}</figcaption>` : ''
     return `<figure class="my-8 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50/50 shadow-xs"><img src="${actualSrc}" alt="${alt || 'Foto Berita'}" class="w-full object-cover max-h-[550px]" />${cap}</figure>`
@@ -517,7 +526,7 @@ watch(() => route.params.slug, async (newSlug) => {
               <div>
                 <div class="aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 border border-slate-100">
                   <img
-                    :src="rel.cover_image || rel.cover_image_url || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'"
+                    :src="rel.cover_image || rel.cover_image_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80'"
                     :alt="rel.title"
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"

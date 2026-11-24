@@ -94,6 +94,6 @@ class Article extends Model
             return asset('storage/' . $this->cover_image);
         }
 
-        return 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=80';
+        return 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80';
     }
 }

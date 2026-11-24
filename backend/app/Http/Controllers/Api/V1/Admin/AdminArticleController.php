@@ -53,12 +53,25 @@ class AdminArticleController extends Controller
             'excerpt'     => ['nullable', 'string', 'max:500'],
             'status'      => ['required', 'in:draft,published,archived'],
             'is_featured' => ['nullable', 'boolean'],
-            'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'cover_image' => ['nullable'],
         ]);
 
         // Handle upload cover image
         if ($request->hasFile('cover_image')) {
             $validated['cover_image'] = $request->file('cover_image')->store('covers', 'public');
+        } elseif ($request->filled('cover_image') && str_starts_with($request->cover_image, 'data:image')) {
+            try {
+                $parts = explode(';base64,', $request->cover_image);
+                $ext = str_contains($parts[0], 'png') ? 'png' : 'jpg';
+                $data = base64_decode($parts[1] ?? '');
+                if ($data) {
+                    $filename = 'covers/' . Str::random(32) . '.' . $ext;
+                    Storage::disk('public')->put($filename, $data);
+                    $validated['cover_image'] = $filename;
+                }
+            } catch (\Throwable) {
+                // Keep as is or skip
+            }
         }
 
         // Generate slug unik
@@ -120,7 +133,7 @@ class AdminArticleController extends Controller
             'excerpt'     => ['nullable', 'string', 'max:500'],
             'status'      => ['sometimes', 'required', 'in:draft,published,archived'],
             'is_featured' => ['nullable', 'boolean'],
-            'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'cover_image' => ['nullable'],
         ]);
 
         // Update cover image jika berkas baru dikirim
@@ -130,6 +143,19 @@ class AdminArticleController extends Controller
                 Storage::disk('public')->delete($article->cover_image);
             }
             $validated['cover_image'] = $request->file('cover_image')->store('covers', 'public');
+        } elseif ($request->filled('cover_image') && str_starts_with($request->cover_image, 'data:image')) {
+            try {
+                $parts = explode(';base64,', $request->cover_image);
+                $ext = str_contains($parts[0], 'png') ? 'png' : 'jpg';
+                $data = base64_decode($parts[1] ?? '');
+                if ($data) {
+                    $filename = 'covers/' . Str::random(32) . '.' . $ext;
+                    Storage::disk('public')->put($filename, $data);
+                    $validated['cover_image'] = $filename;
+                }
+            } catch (\Throwable) {
+                // Keep as is or skip
+            }
         }
 
         // Update slug jika judul diubah

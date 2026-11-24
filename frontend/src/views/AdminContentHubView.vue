@@ -679,6 +679,15 @@ function formatPreviewContent(raw: string): string {
     let actualSrc = src.trim()
     if (articleForm.mediaMap && articleForm.mediaMap[actualSrc]) {
       actualSrc = articleForm.mediaMap[actualSrc]
+    } else if (actualSrc.startsWith('foto_') || !actualSrc.includes('/')) {
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
+          if (cached[actualSrc]) {
+            actualSrc = cached[actualSrc]
+          }
+        } catch {}
+      }
     }
     const cap = alt ? `<figcaption class="text-center text-[11px] text-slate-400 py-1.5 px-3 italic border-t border-[#143d30] bg-[#05130f]">📷 ${alt}</figcaption>` : ''
     return `<figure class="my-4 rounded-xl overflow-hidden border border-[#143d30] bg-[#071913] shadow-md"><img src="${actualSrc}" alt="${alt || 'Foto Berita'}" class="w-full object-cover max-h-[350px]" />${cap}</figure>`
@@ -954,8 +963,18 @@ function applyImageModal() {
   const photoKey = `foto_${count}`
   articleForm.mediaMap[photoKey] = imageModalForm.base64
 
+  // Simpan juga ke cache darurat agar foto_1 tetap bisa di-resolve jika mediaMap terlepas
+  if (typeof window !== 'undefined') {
+    try {
+      const existingCache = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
+      existingCache[photoKey] = imageModalForm.base64
+      localStorage.setItem('muktamar_last_inserted_media', JSON.stringify(existingCache))
+    } catch {}
+  }
+
   const captionText = imageModalForm.caption.trim() || 'Dokumentasi Acara'
-  const snippet = `\n\n![${captionText}](${photoKey})\n\n`
+  // Masukkan langsung data URL gambar pada naskah Markdown agar gambar tampil mandiri dan tidak pernah rusak
+  const snippet = `\n\n![${captionText}](${imageModalForm.base64})\n\n`
 
   const val = articleForm.content || ''
   let start = savedCursorPos.value.start
@@ -2964,7 +2983,7 @@ async function saveSettings(tabLabel: string) {
                     <td class="py-3.5 px-4">
                       <div class="flex items-start gap-3">
                         <img
-                          :src="art.cover_image_url || art.cover_image || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'"
+                          :src="art.cover_image_url || art.cover_image || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=300&q=80'"
                           alt=""
                           class="w-12 h-10 object-cover rounded-lg shrink-0 border border-[#143d30] mt-0.5"
                         />
