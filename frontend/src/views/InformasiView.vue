@@ -167,37 +167,39 @@ onMounted(() => {
       <!-- ============================================================ -->
       <section v-show="activeTab === 'all' || activeTab === 'tabarukan'" class="py-16 sm:py-20 border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
-            <div>
-              <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-1.5">
-                <ShoppingBag class="w-4 h-4" />
-                <span>Katalog Informasi, Layanan & Tabarukan</span>
-              </div>
-              <h2 class="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
-                Informasi Acara, Penginapan & Tabarukan
-              </h2>
-              <p class="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-                Panduan resmi seputar penginapan jamaah, transportasi armada, lokasi acara, hingga cinderamata tabarukan berformat Feed Instagram.
-              </p>
+          <!-- Header Judul & Deskripsi (Area Luas, Rapi, & Tidak Terhimpit) -->
+          <div class="max-w-3xl pb-6 border-b border-slate-200">
+            <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
+              <Sparkles class="w-4 h-4 text-[#008f8a]" />
+              <span>Katalog Informasi & Layanan Jamaah</span>
             </div>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-slate-900 leading-snug">
+              Informasi Acara, Penginapan & Tabarukan
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
+              Panduan resmi seputar penginapan jamaah, transportasi armada, lokasi acara, hingga cinderamata tabarukan berformat Feed Instagram.
+            </p>
+          </div>
 
-            <!-- Kategori Filter (Dinamis & Dapat Disesuaikan) -->
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar shrink-0">
-              <button
-                v-for="cat in categories"
-                :key="cat"
-                type="button"
-                @click="selectedCategory = cat"
-                :class="[
-                  'px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer capitalize shadow-2xs',
-                  selectedCategory === cat 
-                    ? 'bg-[#008f8a] text-white shadow-md font-bold scale-102' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                ]"
-              >
-                {{ cat === 'all' ? 'Semua Informasi' : cat }}
-              </button>
-            </div>
+          <!-- Kategori Filter (Bar Tersendiri di Atas Grid, Rapi & Fleksibel) -->
+          <div class="mt-6 flex items-center gap-2 bg-slate-50/90 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 overflow-x-auto sm:flex-wrap no-scrollbar">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 hidden sm:inline-block shrink-0">
+              Kategori:
+            </span>
+            <button
+              v-for="cat in categories"
+              :key="cat"
+              type="button"
+              @click="selectedCategory = cat"
+              :class="[
+                'px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer capitalize shadow-2xs shrink-0',
+                selectedCategory === cat 
+                  ? 'bg-[#008f8a] text-white shadow-sm font-bold scale-102' 
+                  : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/70'
+              ]"
+            >
+              {{ cat === 'all' ? 'Semua Informasi' : cat }}
+            </button>
           </div>
 
           <!-- Grid Feed Instagram (1:1 Square Format) -->

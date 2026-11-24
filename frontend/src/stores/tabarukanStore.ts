@@ -195,10 +195,10 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
   }
 
   const allCategories = computed(() => {
+    if (customCategories.value && customCategories.value.length > 0) {
+      return customCategories.value
+    }
     const set = new Set<string>()
-    customCategories.value.forEach(c => {
-      if (c && c.trim()) set.add(c.trim())
-    })
     tabarukanItems.value.forEach(item => {
       if (item.category && item.category.trim()) set.add(item.category.trim())
     })
