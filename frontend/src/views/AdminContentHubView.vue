@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
@@ -45,7 +45,9 @@ import {
   Unlock,
   PenLine,
   Link2,
-  BookmarkCheck
+  BookmarkCheck,
+  Maximize2,
+  Minimize2
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -279,6 +281,28 @@ function toggleSlugCustom() {
 }
 
 const savedCursorPos = ref({ start: 0, end: 0 })
+const isContentFullscreen = ref(false)
+
+function toggleContentFullscreen() {
+  isContentFullscreen.value = !isContentFullscreen.value
+  setTimeout(() => {
+    const textarea = document.getElementById('article-content-textarea') as HTMLTextAreaElement | null
+    if (textarea) textarea.focus()
+  }, 100)
+}
+
+const contentStats = computed(() => {
+  const text = articleForm.content || ''
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0
+  const chars = text.length
+  return { words, chars }
+})
+
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isContentFullscreen.value) {
+    isContentFullscreen.value = false
+  }
+}
 
 function trackCursorPos() {
   const textarea = document.getElementById('article-content-textarea') as HTMLTextAreaElement | null
@@ -977,6 +1001,11 @@ onMounted(async () => {
   if (route.query.action === 'create' && activeTab.value === 'berita') {
     openAddArticle()
   }
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 watch(() => route.query.tab, (newTab) => {
@@ -2119,34 +2148,76 @@ async function saveSettings(tabLabel: string) {
               </p>
             </div>
 
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <label class="text-xs font-bold text-slate-300">
-                  Isi Artikel *
-                </label>
-                <!-- Editor Tabs: Tulis vs Pratinjau -->
-                <div class="flex items-center gap-1 bg-[#071913] p-1 rounded-xl border border-[#143d30]">
+            <!-- Editor Wadah Naskah Artikel (Dapat Diperluas / Layar Penuh) -->
+            <div
+              :class="[
+                isContentFullscreen
+                  ? 'fixed inset-0 z-50 bg-[#061510] p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden shadow-2xl'
+                  : 'relative'
+              ]"
+            >
+              <!-- Baris Kontrol Editor: Label, Info Kata, Tabs, dan Tombol Layar Penuh -->
+              <div class="flex flex-wrap items-center justify-between gap-2.5 mb-2.5 pb-2 border-b border-[#143d30]/60">
+                <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                  <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <PenLine class="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Isi Artikel *</span>
+                  </label>
+                  <span
+                    v-if="isContentFullscreen"
+                    class="text-[11px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1"
+                  >
+                    <Sparkles class="w-3 h-3 text-emerald-400" />
+                    <span>Mode Layar Penuh</span>
+                  </span>
+                  <!-- Indikator Jumlah Kata & Karakter -->
+                  <span class="text-[11px] text-slate-400 bg-[#071913] px-2.5 py-0.5 rounded-md border border-[#143d30]">
+                    {{ contentStats.words }} kata • {{ contentStats.chars }} karakter
+                  </span>
+                </div>
+
+                <!-- Kontrol Kanan: Tabs Editor & Tombol Layar Penuh -->
+                <div class="flex items-center gap-2">
+                  <!-- Editor Tabs: Tulis vs Pratinjau -->
+                  <div class="flex items-center gap-1 bg-[#071913] p-1 rounded-xl border border-[#143d30]">
+                    <button
+                      type="button"
+                      @click="articleForm.activeEditorTab = 'write'"
+                      :class="[
+                        'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
+                        articleForm.activeEditorTab === 'write' ? 'bg-[#008f8a] text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                      ]"
+                    >
+                      <PenLine class="w-3.5 h-3.5" />
+                      <span>Tulis Naskah</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="articleForm.activeEditorTab = 'preview'"
+                      :class="[
+                        'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
+                        articleForm.activeEditorTab === 'preview' ? 'bg-[#008f8a] text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                      ]"
+                    >
+                      <Eye class="w-3.5 h-3.5" />
+                      <span>Pratinjau Hasil</span>
+                    </button>
+                  </div>
+
+                  <!-- Tombol Mode Layar Penuh / Perkecil -->
                   <button
                     type="button"
-                    @click="articleForm.activeEditorTab = 'write'"
+                    @click="toggleContentFullscreen"
+                    :title="isContentFullscreen ? 'Kembali ke Tampilan Biasa (Esc)' : 'Perluas / Mode Layar Penuh'"
                     :class="[
-                      'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-                      articleForm.activeEditorTab === 'write' ? 'bg-[#008f8a] text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                      'px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border shadow-xs',
+                      isContentFullscreen
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                        : 'bg-[#0d261e] border-[#143d30] text-emerald-400 hover:bg-[#13352a] hover:text-emerald-300'
                     ]"
                   >
-                    <PenLine class="w-3.5 h-3.5" />
-                    <span>Tulis Naskah</span>
-                  </button>
-                  <button
-                    type="button"
-                    @click="articleForm.activeEditorTab = 'preview'"
-                    :class="[
-                      'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-                      articleForm.activeEditorTab === 'preview' ? 'bg-[#008f8a] text-white shadow-xs' : 'text-slate-400 hover:text-white'
-                    ]"
-                  >
-                    <Eye class="w-3.5 h-3.5" />
-                    <span>Pratinjau Hasil</span>
+                    <component :is="isContentFullscreen ? Minimize2 : Maximize2" class="w-3.5 h-3.5" />
+                    <span>{{ isContentFullscreen ? 'Kecilkan Layar (Esc)' : 'Layar Penuh' }}</span>
                   </button>
                 </div>
               </div>
@@ -2236,8 +2307,13 @@ async function saveSettings(tabLabel: string) {
                 </button>
               </div>
 
-              <!-- Write View: Textarea -->
-              <div v-show="articleForm.activeEditorTab === 'write'">
+              <!-- Write View: Textarea (Nyaman, Lega, Teks Jelas, dan Bisa Diperluas) -->
+              <div 
+                v-show="articleForm.activeEditorTab === 'write'" 
+                :class="[
+                  isContentFullscreen ? 'flex-1 flex flex-col min-h-0' : ''
+                ]"
+              >
                 <textarea
                   id="article-content-textarea"
                   v-model="articleForm.content"
@@ -2246,15 +2322,18 @@ async function saveSettings(tabLabel: string) {
                   @select="trackCursorPos"
                   @focus="trackCursorPos"
                   @input="trackCursorPos"
-                  rows="10"
+                  :rows="isContentFullscreen ? 26 : 18"
                   placeholder="Tulis naskah berita lengkap di sini (pisahkan paragraf dengan baris kosong dua kali enter)..."
-                  class="w-full px-4 py-3 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
+                  :class="[
+                    'w-full px-5 py-4 rounded-xl bg-[#071913] border border-[#143d30] text-sm sm:text-base text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed font-sans transition-all resize-y shadow-inner',
+                    isContentFullscreen ? 'flex-1 h-full min-h-[420px]' : 'min-h-[420px]'
+                  ]"
                 ></textarea>
                 <div class="mt-2 space-y-1">
-                  <p class="text-[10px] text-slate-400">
-                    Format naskah: Pisahkan paragraf dengan dua kali Enter. Gunakan toolbar di atas untuk subjudul, kutipan, dan teks tebal.
+                  <p class="text-[11px] text-slate-400">
+                    Format naskah: Pisahkan paragraf dengan dua kali Enter. Gunakan toolbar di atas untuk subjudul, kutipan, dan teks tebal. Pojok kanan bawah textarea dapat ditarik ke bawah untuk memperluas tinggi wadah sesuka hati.
                   </p>
-                  <p class="text-[10px] text-emerald-400/90 font-medium flex items-center gap-1.5">
+                  <p class="text-[11px] text-emerald-400/90 font-medium flex items-center gap-1.5">
                     <Sparkles class="w-3.5 h-3.5 shrink-0" />
                     <span>Foto dan Banner "Baca Juga" disisipkan tepat di posisi kursor Anda. Anda juga bebas memindahkannya dengan Cut & Paste (Ctrl+X / Ctrl+V) ke baris mana saja di antara paragraf!</span>
                   </p>
@@ -2262,7 +2341,13 @@ async function saveSettings(tabLabel: string) {
               </div>
 
               <!-- Preview View: Formatted Preview in Admin -->
-              <div v-show="articleForm.activeEditorTab === 'preview'" class="p-6 rounded-2xl bg-[#071913] border border-[#143d30] min-h-[250px]">
+              <div 
+                v-show="articleForm.activeEditorTab === 'preview'" 
+                :class="[
+                  'p-6 sm:p-8 rounded-2xl bg-[#071913] border border-[#143d30]',
+                  isContentFullscreen ? 'flex-1 overflow-y-auto max-w-4xl mx-auto w-full' : 'min-h-[420px]'
+                ]"
+              >
                 <div class="mb-4 pb-3 border-b border-[#143d30] flex items-center justify-between text-xs text-slate-400">
                   <span class="font-bold text-emerald-400 uppercase tracking-wider">Pratinjau Tampilan Pembaca</span>
                   <span>Oleh: <strong class="text-white">{{ articleForm.authorName }}</strong> ({{ articleForm.authorRole }})</span>
@@ -2271,7 +2356,7 @@ async function saveSettings(tabLabel: string) {
               </div>
 
               <!-- Sisipkan Gambar Button (Matching User Screenshot 2) -->
-              <div class="mt-3 flex items-center gap-3">
+              <div v-if="!isContentFullscreen" class="mt-3 flex items-center gap-3">
                 <label class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] border border-[#143d30] text-slate-300 text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors shadow-xs">
                   <ImageIcon class="w-4 h-4 text-emerald-400" />
                   <span>Sisipkan Gambar dari Komputer</span>
