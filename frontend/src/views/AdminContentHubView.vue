@@ -5,7 +5,7 @@ import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
 import { useSettingsStore, DEFAULT_SCHEDULE_DAYS, DEFAULT_GALLERY_ALBUMS, DEFAULT_ABOUT_STRUCTURE_ITEMS, DEFAULT_ABOUT_HISTORY_PARAGRAPHS } from '@/stores/settingsStore'
 import { useNewsStore } from '@/stores/newsStore'
-import { useTabarukanStore, type TabarukanItem, type SecretariatContact } from '@/stores/tabarukanStore'
+import { useTabarukanStore, type TabarukanItem, type SecretariatContact, type GuideInfoItem } from '@/stores/tabarukanStore'
 import type { GalleryPhoto, GalleryAlbum, GalleryPhotoItem, Article, ScheduleDay, ScheduleItem, AboutStructureItem, AboutParagraphItem } from '@/types'
 import { 
   Layers, 
@@ -71,61 +71,129 @@ const toastMessage = ref('')
 const formSettings = reactive({ ...settingsStore.settings })
 
 // ============================================================
-// TABARUKAN & CP KESEKRETARIATAN STATE & METHODS
+// PANDUAN & FASILITAS ACARA (PENGINAPAN, TRANSPORTASI, MEDIS)
 // ============================================================
-const isTabarukanModalOpen = ref(false)
-const isEditingTabarukan = ref(false)
-const tabarukanForm = reactive({
+const isGuideModalOpen = ref(false)
+const isEditingGuide = ref(false)
+const guideForm = reactive({
   id: undefined as number | undefined,
   title: '',
   category: 'Penginapan',
   description: '',
-  image_url: '',
-  price_info: '',
-  contact_wa: '6281234567890'
+  location_note: '',
+  contact_wa: '6281234567890',
+  image_url: ''
 })
 
-const newCategoryInput = ref('')
+const newGuideCategoryInput = ref('')
 
-function handleAddCategory() {
-  if (!newCategoryInput.value.trim()) return
-  const success = tabarukanStore.addCategory(newCategoryInput.value.trim())
+function handleAddGuideCategory() {
+  if (!newGuideCategoryInput.value.trim()) return
+  const success = tabarukanStore.addGuideCategory(newGuideCategoryInput.value.trim())
   if (success) {
-    toastMessage.value = `Kategori "${newCategoryInput.value.trim()}" berhasil ditambahkan!`
+    toastMessage.value = `Kategori "${newGuideCategoryInput.value.trim()}" berhasil ditambahkan!`
     showToast.value = true
     setTimeout(() => { showToast.value = false }, 2500)
-    newCategoryInput.value = ''
+    newGuideCategoryInput.value = ''
   } else {
     alert('Kategori sudah ada atau tidak valid.')
   }
 }
 
-function handleRemoveCategory(cat: string) {
+function handleRemoveGuideCategory(cat: string) {
   if (confirm(`Hapus kategori "${cat}" dari daftar filter?`)) {
-    tabarukanStore.deleteCategory(cat)
-    toastMessage.value = `Kategori "${cat}" dihapus.`
+    tabarukanStore.deleteGuideCategory(cat)
+    toastMessage.value = `Kategori "${cat}" berhasil dihapus!`
     showToast.value = true
     setTimeout(() => { showToast.value = false }, 2500)
   }
 }
 
-function handleResetCategories() {
-  if (confirm('Kembalikan daftar kategori ke standar awal (Penginapan, Transportasi, Lokasi Acara, Tabarukan, Konsumsi, Layanan Medis)?')) {
-    tabarukanStore.resetCategories()
+function handleResetGuideCategories() {
+  if (confirm('Kembalikan daftar kategori panduan ke standar awal?')) {
+    tabarukanStore.resetGuideCategories()
     toastMessage.value = 'Kategori dikembalikan ke standar awal.'
     showToast.value = true
     setTimeout(() => { showToast.value = false }, 2500)
   }
 }
 
+function openAddGuide() {
+  isEditingGuide.value = false
+  guideForm.id = undefined
+  guideForm.title = ''
+  guideForm.category = tabarukanStore.guideCategories[0] || 'Penginapan'
+  guideForm.description = ''
+  guideForm.location_note = ''
+  guideForm.contact_wa = '6281234567890'
+  guideForm.image_url = ''
+  isGuideModalOpen.value = true
+}
+
+function openEditGuide(guide: GuideInfoItem) {
+  isEditingGuide.value = true
+  guideForm.id = guide.id
+  guideForm.title = guide.title
+  guideForm.category = guide.category || 'Penginapan'
+  guideForm.description = guide.description || ''
+  guideForm.location_note = guide.location_note || ''
+  guideForm.contact_wa = guide.contact_wa || '6281234567890'
+  guideForm.image_url = guide.image_url || ''
+  isGuideModalOpen.value = true
+}
+
+function saveGuide() {
+  if (!guideForm.title.trim()) {
+    alert('Judul Panduan Informasi wajib diisi.')
+    return
+  }
+  tabarukanStore.saveGuideItem({
+    id: guideForm.id,
+    title: guideForm.title.trim(),
+    category: guideForm.category.trim() || 'Penginapan',
+    description: guideForm.description.trim(),
+    location_note: guideForm.location_note.trim(),
+    contact_wa: guideForm.contact_wa.trim(),
+    image_url: guideForm.image_url.trim()
+  })
+  isGuideModalOpen.value = false
+  toastMessage.value = isEditingGuide.value ? 'Panduan berhasil diperbarui!' : 'Panduan baru berhasil ditambahkan!'
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 3000)
+}
+
+function deleteGuide(id: number) {
+  if (confirm('Apakah Anda yakin ingin menghapus panduan informasi ini?')) {
+    tabarukanStore.deleteGuideItem(id)
+    toastMessage.value = 'Panduan informasi berhasil dihapus.'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 2500)
+  }
+}
+
+// ============================================================
+// TABARUKAN & CINDERAMATA KHIDMAH (FEED IG 1:1)
+// ============================================================
+const isTabarukanModalOpen = ref(false)
+const isEditingTabarukan = ref(false)
+const tabarukanForm = reactive({
+  id: undefined as number | undefined,
+  title: '',
+  category: 'Kaos & Pakaian',
+  description: '',
+  image_url: '',
+  price_info: 'Infaq Tabarukan: Rp ',
+  contact_wa: '6281234567890'
+})
+
 function openAddTabarukan() {
   isEditingTabarukan.value = false
   tabarukanForm.id = undefined
   tabarukanForm.title = ''
-  tabarukanForm.category = tabarukanStore.allCategories[0] || 'Penginapan'
+  tabarukanForm.category = 'Kaos & Pakaian'
   tabarukanForm.description = ''
   tabarukanForm.image_url = ''
-  tabarukanForm.price_info = ''
+  tabarukanForm.price_info = 'Infaq Tabarukan: Rp '
   tabarukanForm.contact_wa = '6281234567890'
   isTabarukanModalOpen.value = true
 }
@@ -134,7 +202,7 @@ function openEditTabarukan(item: TabarukanItem) {
   isEditingTabarukan.value = true
   tabarukanForm.id = item.id
   tabarukanForm.title = item.title
-  tabarukanForm.category = item.category || 'Penginapan'
+  tabarukanForm.category = item.category || 'Kaos & Pakaian'
   tabarukanForm.description = item.description || ''
   tabarukanForm.image_url = item.image_url || ''
   tabarukanForm.price_info = item.price_info || ''
@@ -144,22 +212,35 @@ function openEditTabarukan(item: TabarukanItem) {
 
 function saveTabarukan() {
   if (!tabarukanForm.title.trim()) {
-    alert('Judul / Nama Informasi wajib diisi.')
+    alert('Judul / Nama Cinderamata wajib diisi.')
+    return
+  }
+  if (!tabarukanForm.image_url.trim()) {
+    alert('Foto cinderamata Feed IG wajib diisi.')
     return
   }
   tabarukanStore.saveTabarukanItem({
     id: tabarukanForm.id,
     title: tabarukanForm.title.trim(),
-    category: tabarukanForm.category.trim() || 'Penginapan',
+    category: tabarukanForm.category.trim() || 'Kaos & Pakaian',
     description: tabarukanForm.description.trim(),
-    image_url: tabarukanForm.image_url.trim() || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+    image_url: tabarukanForm.image_url.trim(),
     price_info: tabarukanForm.price_info.trim(),
     contact_wa: tabarukanForm.contact_wa.trim()
   })
   isTabarukanModalOpen.value = false
-  toastMessage.value = isEditingTabarukan.value ? 'Item informasi berhasil diperbarui!' : 'Item informasi baru berhasil ditambahkan!'
+  toastMessage.value = isEditingTabarukan.value ? 'Tabarukan berhasil diperbarui!' : 'Tabarukan baru berhasil ditambahkan!'
   showToast.value = true
   setTimeout(() => { showToast.value = false }, 3000)
+}
+
+function deleteTabarukan(id: number) {
+  if (confirm('Apakah Anda yakin ingin menghapus item tabarukan ini?')) {
+    tabarukanStore.deleteTabarukanItem(id)
+    toastMessage.value = 'Item tabarukan berhasil dihapus.'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 2500)
+  }
 }
 
 function handleDeleteTabarukan(item: TabarukanItem) {
@@ -3599,25 +3680,33 @@ async function saveSettings(tabLabel: string) {
             <div class="text-[11px] text-slate-400 font-medium">Dashboard / Konten Situs / Informasi Umum</div>
             <h2 class="text-xl font-bold text-white mt-1">Kelola Informasi Umum</h2>
             <p class="text-xs text-slate-400 mt-0.5">
-              Kelola item Tabarukan (ukuran Feed IG), Kontak Person (CP) Kesekretariatan, panduan Peta Lokasi, dan banner header.
+              Kelola panduan penginapan & transportasi (berbasis teks & kontak), katalog Tabarukan (format Feed IG), dan CP Kesekretariatan.
             </p>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2.5">
+            <button
+              type="button"
+              @click="openAddGuide"
+              class="px-3.5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <Building2 class="w-4 h-4" />
+              <span>+ Tambah Panduan</span>
+            </button>
             <button
               type="button"
               @click="openAddTabarukan"
-              class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+              class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <ShoppingBag class="w-4 h-4" />
-              <span>+ Tambah Tabarukan (Feed IG)</span>
+              <span>+ Tabarukan (Feed IG)</span>
             </button>
             <button
               type="button"
               @click="openAddCP"
-              class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <PhoneCall class="w-4 h-4" />
-              <span>+ Tambah CP Panitia</span>
+              <span>+ CP Panitia</span>
             </button>
           </div>
         </div>
@@ -3649,61 +3738,58 @@ async function saveSettings(tabLabel: string) {
           />
         </div>
 
-        <!-- KELOLA KATEGORI INFORMASI & LAYANAN (CUSTOM CATEGORIES) -->
-        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-5">
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#143d30] pb-4">
+        <!-- 1. KELOLA PANDUAN & FASILITAS ACARA (PENGINAPAN, TRANSPORTASI, MEDIS, DLL) -->
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#143d30] pb-4">
             <div>
               <div class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 mb-1">
-                <Tag class="w-3.5 h-3.5" />
-                <span>Kategori Kustom</span>
+                <Building2 class="w-3.5 h-3.5" />
+                <span>Format Teks & Informasi Panduan</span>
               </div>
-              <h3 class="text-base font-bold text-white">Kelola Kategori Informasi & Layanan</h3>
+              <h3 class="text-base font-bold text-white">
+                Kelola Panduan & Fasilitas Acara
+              </h3>
               <p class="text-xs text-slate-400 mt-0.5">
-                Kategori filter yang tampil pada halaman Informasi Umum (misal: Penginapan, Transportasi, Lokasi Acara, Tabarukan, dll).
+                Penginapan asrama, transportasi armada shuttle, posko medis, dan rute lokasi (berbasis teks & kontak WA, tidak wajib gambar feed IG).
               </p>
             </div>
-            <button
-              type="button"
-              @click="handleResetCategories"
-              class="text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <RotateCcw class="w-3.5 h-3.5" />
-              <span>Reset Standar</span>
-            </button>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                @click="openAddGuide"
+                class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Plus class="w-4 h-4" />
+                <span>+ Tambah Panduan Info</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Input Tambah Kategori Baru -->
-          <div class="flex flex-wrap items-center gap-2 max-w-lg">
-            <input
-              v-model="newCategoryInput"
-              @keyup.enter="handleAddCategory"
-              type="text"
-              placeholder="Ketik kategori baru (contoh: Penginapan / Transport)..."
-              class="flex-1 px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
-            />
-            <button
-              type="button"
-              @click="handleAddCategory"
-              class="px-4 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
-            >
-              <Plus class="w-4 h-4" />
-              <span>Tambah Kategori</span>
-            </button>
-          </div>
+          <!-- Kategori Kustom Panduan -->
+          <div class="p-4 rounded-2xl bg-[#071913] border border-[#143d30] space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold text-slate-300">Filter Kategori Panduan:</span>
+              <button
+                type="button"
+                @click="handleResetGuideCategories"
+                class="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <RotateCcw class="w-3 h-3" />
+                <span>Reset Standar</span>
+              </button>
+            </div>
 
-          <!-- Badges Kategori Aktif -->
-          <div>
-            <div class="text-[11px] font-semibold text-slate-400 mb-2">Daftar Kategori Aktif:</div>
+            <!-- Chips Kategori Aktif dengan tombol x -->
             <div class="flex flex-wrap items-center gap-2">
               <div
-                v-for="cat in tabarukanStore.allCategories"
+                v-for="cat in tabarukanStore.guideCategories"
                 :key="cat"
-                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#071913] border border-emerald-500/30 text-emerald-300 text-xs font-semibold"
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0b211a] border border-emerald-500/30 text-emerald-300 text-xs font-semibold"
               >
                 <span>{{ cat }}</span>
                 <button
                   type="button"
-                  @click="handleRemoveCategory(cat)"
+                  @click="handleRemoveGuideCategory(cat)"
                   class="text-slate-400 hover:text-red-400 cursor-pointer p-0.5 transition-colors"
                   title="Hapus Kategori"
                 >
@@ -3711,10 +3797,88 @@ async function saveSettings(tabLabel: string) {
                 </button>
               </div>
             </div>
+
+            <!-- Input Tambah Kategori -->
+            <div class="flex flex-wrap items-center gap-2 max-w-md pt-2">
+              <input
+                v-model="newGuideCategoryInput"
+                @keyup.enter="handleAddGuideCategory"
+                type="text"
+                placeholder="Ketik kategori baru (contoh: Posko Keamanan / Jadwal)..."
+                class="flex-1 px-3 py-1.5 rounded-lg bg-[#0b211a] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
+              />
+              <button
+                type="button"
+                @click="handleAddGuideCategory"
+                class="px-3 py-1.5 rounded-lg bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                <span>Tambah</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Daftar Kartu Panduan Info -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div
+              v-for="guide in tabarukanStore.guideItems"
+              :key="guide.id"
+              class="bg-[#071913] border border-[#143d30] rounded-2xl p-5 flex flex-col justify-between group hover:border-emerald-500/40 transition-all space-y-4"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider">
+                    {{ guide.category }}
+                  </span>
+                </div>
+
+                <h4 class="font-bold text-sm text-white line-clamp-1">
+                  {{ guide.title }}
+                </h4>
+
+                <div v-if="guide.location_note" class="text-xs text-emerald-300 flex items-center gap-1 font-medium">
+                  <MapPin class="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span class="line-clamp-1">{{ guide.location_note }}</span>
+                </div>
+
+                <p class="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                  {{ guide.description }}
+                </p>
+
+                <!-- Opsional thumbnail jika ada foto -->
+                <div v-if="guide.image_url" class="rounded-xl overflow-hidden aspect-video bg-black/40">
+                  <img :src="guide.image_url" :alt="guide.title" class="w-full h-full object-cover" />
+                </div>
+              </div>
+
+              <div class="pt-3 border-t border-[#143d30] flex items-center justify-between">
+                <span class="text-[11px] text-slate-400 font-mono">
+                  WA: {{ guide.contact_wa || '-' }}
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    @click="openEditGuide(guide)"
+                    class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-emerald-400 hover:bg-slate-700 cursor-pointer transition-colors"
+                    title="Edit Panduan"
+                  >
+                    <Edit3 class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    @click="deleteGuide(guide.id)"
+                    class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400 hover:bg-slate-700 cursor-pointer transition-colors"
+                    title="Hapus Panduan"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 1. DAFTAR ITEM INFORMASI & TABARUKAN (FEED IG SIZE) -->
+        <!-- 2. DAFTAR ITEM TABARUKAN KHIDMAH (FORMAT FEED IG PERSEGI 1:1) -->
         <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-6">
           <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
             <div>
@@ -3723,19 +3887,19 @@ async function saveSettings(tabLabel: string) {
                 <span>Format Feed Instagram (1:1 Square)</span>
               </div>
               <h3 class="text-base font-bold text-white">
-                Daftar Item Informasi & Layanan Acara
+                Kelola Tabarukan & Cinderamata Khidmah
               </h3>
               <p class="text-xs text-slate-400 mt-0.5">
-                Foto diunggah dengan rasio persegi Feed IG, memuat info penginapan, transportasi, lokasi, hingga cinderamata tabarukan.
+                Khusus produk cinderamata fisik (Kaos, Buku Manakib, Sorban, Minyak Wangi) dengan foto rasio persegi Feed IG 1:1.
               </p>
             </div>
             <button
               type="button"
               @click="openAddTabarukan"
-              class="px-3.5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+              class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus class="w-4 h-4" />
-              <span>Tambah Item</span>
+              <span>+ Tambah Tabarukan (Feed IG)</span>
             </button>
           </div>
 
@@ -3780,16 +3944,16 @@ async function saveSettings(tabLabel: string) {
                     <button
                       type="button"
                       @click="openEditTabarukan(item)"
-                      class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-xs cursor-pointer"
-                      title="Ubah Tabarukan"
+                      class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-emerald-400 hover:bg-slate-700 cursor-pointer transition-colors"
+                      title="Edit Item"
                     >
                       <Edit3 class="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
-                      @click="handleDeleteTabarukan(item)"
-                      class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                      title="Hapus Tabarukan"
+                      @click="deleteTabarukan(item.id)"
+                      class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400 hover:bg-slate-700 cursor-pointer transition-colors"
+                      title="Hapus Item"
                     >
                       <Trash2 class="w-3.5 h-3.5" />
                     </button>
@@ -3800,7 +3964,7 @@ async function saveSettings(tabLabel: string) {
           </div>
         </div>
 
-        <!-- 2. CONTACT PERSON (CP) KESEKRETARIATAN -->
+        <!-- 3. CONTACT PERSON (CP) KESEKRETARIATAN -->
         <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-6">
           <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
             <div>
@@ -4213,6 +4377,137 @@ async function saveSettings(tabLabel: string) {
     </Teleport>
 
     <!-- ============================================================ -->
+    <!-- MODAL: ADD / EDIT PANDUAN INFORMASI ACARA -->
+    <!-- ============================================================ -->
+    <Teleport to="body">
+      <div
+        v-if="isGuideModalOpen"
+        class="fixed inset-0 bg-black/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+      >
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl max-h-[92vh] overflow-y-auto">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <Building2 class="w-4 h-4" />
+              <span>{{ isEditingGuide ? 'Edit Panduan Informasi Acara' : 'Tambah Panduan Informasi Acara Baru' }}</span>
+            </h3>
+            <button @click="isGuideModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Judul Panduan Informasi *
+              </label>
+              <input
+                v-model="guideForm.title"
+                type="text"
+                placeholder="Contoh: Asrama Santri & Wisma Transit Jamaah / Rute Armada Bus"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
+              />
+            </div>
+
+            <!-- Kategori Panduan -->
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">
+                Kategori Panduan *
+              </label>
+              <div class="flex flex-wrap gap-1.5 mb-2">
+                <button
+                  v-for="cat in tabarukanStore.guideCategories"
+                  :key="cat"
+                  type="button"
+                  @click="guideForm.category = cat"
+                  :class="[
+                    'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer border',
+                    guideForm.category === cat
+                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-xs'
+                      : 'bg-[#071913] text-slate-300 border-[#143d30] hover:border-emerald-500/50'
+                  ]"
+                >
+                  {{ cat }}
+                </button>
+              </div>
+              <input
+                v-model="guideForm.category"
+                type="text"
+                placeholder="Pilih tombol di atas atau ketik kategori baru..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Catatan Lokasi / Titik Pusat
+                </label>
+                <input
+                  v-model="guideForm.location_note"
+                  type="text"
+                  placeholder="Contoh: Kompleks Asrama Bahrul Ulum"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  No. WhatsApp Narahubung / Info
+                </label>
+                <input
+                  v-model="guideForm.contact_wa"
+                  type="text"
+                  placeholder="Contoh: 6281234567890"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Deskripsi / Penjelasan Fasilitas & Panduan
+              </label>
+              <textarea
+                v-model="guideForm.description"
+                rows="3"
+                placeholder="Tuliskan fasilitas, rute, jam pelayanan, atau petunjuk bagi jamaah..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              ></textarea>
+            </div>
+
+            <!-- Opsional Foto Panduan -->
+            <div>
+              <ImageUploadInput
+                v-model="guideForm.image_url"
+                label="Foto / Denah Panduan (Opsional)"
+                description="Boleh dikosongkan jika informasi berupa teks murni panduan acara."
+                aspect="wide"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+            <button
+              type="button"
+              @click="isGuideModalOpen = false"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="saveGuide"
+              class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <CheckCircle2 class="w-4 h-4" />
+              <span>Simpan Panduan</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ============================================================ -->
     <!-- MODAL: ADD / EDIT TABARUKAN (FEED IG SIZE) -->
     <!-- ============================================================ -->
     <Teleport to="body">
@@ -4224,7 +4519,7 @@ async function saveSettings(tabLabel: string) {
           <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
             <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
               <ShoppingBag class="w-4 h-4" />
-              <span>{{ isEditingTabarukan ? 'Edit Item Tabarukan' : 'Tambah Item Tabarukan Baru (Feed IG)' }}</span>
+              <span>{{ isEditingTabarukan ? 'Edit Item Tabarukan' : 'Tambah Cinderamata Tabarukan Baru (Feed IG)' }}</span>
             </h3>
             <button @click="isTabarukanModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
               <X class="w-5 h-5" />
@@ -4235,86 +4530,70 @@ async function saveSettings(tabLabel: string) {
             <!-- Upload Foto Feed IG (1:1 Square) -->
             <ImageUploadInput
               v-model="tabarukanForm.image_url"
-              label="Foto Item (Ukuran Persegi Feed IG 1:1) *"
-              description="Unggah foto penginapan, transportasi, lokasi, atau tabarukan dari komputer. Format persegi 1:1."
+              label="Foto Cinderamata (Ukuran Persegi Feed IG 1:1) *"
+              description="Unggah foto produk/cinderamata tabarukan dari komputer. Format feed IG persegi 1:1."
               aspect="square"
             />
 
             <div>
               <label class="block text-xs font-bold text-slate-300 mb-1">
-                Nama / Judul Informasi *
+                Nama / Judul Cinderamata *
               </label>
               <input
                 v-model="tabarukanForm.title"
                 type="text"
-                placeholder="Contoh: Penginapan Asrama Santri / Rute Armada Bus / Kaos Resmi"
+                placeholder="Contoh: Kaos Resmi Haul Abah & Rojabiyyah 2026"
                 class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
-              />
-            </div>
-
-            <!-- Kategori Informasi (Pilihan Cepat & Kustom) -->
-            <div>
-              <label class="block text-xs font-bold text-slate-300 mb-1.5">
-                Kategori Informasi *
-              </label>
-              <div class="flex flex-wrap gap-1.5 mb-2">
-                <button
-                  v-for="cat in tabarukanStore.allCategories"
-                  :key="cat"
-                  type="button"
-                  @click="tabarukanForm.category = cat"
-                  :class="[
-                    'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer border',
-                    tabarukanForm.category === cat
-                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-xs'
-                      : 'bg-[#071913] text-slate-300 border-[#143d30] hover:border-emerald-500/50'
-                  ]"
-                >
-                  {{ cat }}
-                </button>
-              </div>
-              <input
-                v-model="tabarukanForm.category"
-                type="text"
-                placeholder="Pilih tombol di atas atau ketik kategori baru..."
-                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
               />
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1">
-                  Keterangan Singkat / Infaq / Fasilitas
+                  Kategori Cinderamata
                 </label>
                 <input
-                  v-model="tabarukanForm.price_info"
+                  v-model="tabarukanForm.category"
                   type="text"
-                  placeholder="Contoh: Gratis Asrama / Rute Shuttle / Infaq Rp 85.000"
-                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+                  placeholder="Contoh: Kaos / Kitab / Atribut / Minyak Wangi"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-slate-300 mb-1">
-                  No. WhatsApp Narahubung / Info
+                  Keterangan Infaq Tabarukan
                 </label>
                 <input
-                  v-model="tabarukanForm.contact_wa"
+                  v-model="tabarukanForm.price_info"
                   type="text"
-                  placeholder="Contoh: 6281234567890"
-                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                  placeholder="Contoh: Infaq Tabarukan: Rp 85.000"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
             </div>
 
             <div>
               <label class="block text-xs font-bold text-slate-300 mb-1">
-                Deskripsi / Penjelasan Lengkap
+                No. WhatsApp Pemesanan
+              </label>
+              <input
+                v-model="tabarukanForm.contact_wa"
+                type="text"
+                placeholder="Contoh: 6281234567890"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+              />
+              <p class="text-[10px] text-slate-400 mt-1">Gunakan format angka tanpa spasi. Pengunjung dapat langsung klik pesan ke nomor ini.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Deskripsi / Keterangan Produk
               </label>
               <textarea
                 v-model="tabarukanForm.description"
                 rows="3"
-                placeholder="Tuliskan fasilitas, rute, kapasitas, atau rincian cinderamata..."
+                placeholder="Tuliskan bahan, ukuran, dan penjelasan cinderamata..."
                 class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
               ></textarea>
             </div>
@@ -4334,7 +4613,7 @@ async function saveSettings(tabLabel: string) {
               class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <CheckCircle2 class="w-4 h-4" />
-              <span>Simpan Informasi</span>
+              <span>Simpan Tabarukan</span>
             </button>
           </div>
         </div>

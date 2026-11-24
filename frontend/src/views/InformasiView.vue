@@ -2,7 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
-import { useTabarukanStore, type TabarukanItem, type SecretariatContact } from '@/stores/tabarukanStore'
+import { 
+  useTabarukanStore, 
+  type GuideInfoItem, 
+  type TabarukanItem, 
+  type SecretariatContact 
+} from '@/stores/tabarukanStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { 
   ShoppingBag, 
@@ -19,14 +24,19 @@ import {
   Bus, 
   Heart,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Bed,
+  Utensils,
+  HeartPulse,
+  Building2,
+  BookOpen
 } from 'lucide-vue-next'
 
 const tabarukanStore = useTabarukanStore()
 const settingsStore = useSettingsStore()
 
-const activeTab = ref<'all' | 'tabarukan' | 'cp' | 'lokasi'>('all')
-const selectedCategory = ref<string>('all')
+const activeTab = ref<'all' | 'panduan' | 'tabarukan' | 'cp' | 'lokasi'>('all')
+const selectedGuideCategory = ref<string>('all')
 
 // Modal Detail Tabarukan
 const activeModalItem = ref<TabarukanItem | null>(null)
@@ -42,24 +52,40 @@ function closeDetailModal() {
   activeModalItem.value = null
 }
 
-const categories = computed(() => {
-  return ['all', ...tabarukanStore.allCategories]
+const guideCategories = computed(() => {
+  return ['all', ...tabarukanStore.guideCategories]
 })
 
-const filteredTabarukan = computed(() => {
-  if (selectedCategory.value === 'all') return tabarukanStore.tabarukanItems
-  return tabarukanStore.tabarukanItems.filter(item => item.category === selectedCategory.value)
+const filteredGuides = computed(() => {
+  if (selectedGuideCategory.value === 'all') return tabarukanStore.guideItems
+  return tabarukanStore.guideItems.filter(g => g.category.toLowerCase() === selectedGuideCategory.value.toLowerCase())
 })
+
+function getGuideCategoryIcon(category: string) {
+  const cat = (category || '').toLowerCase()
+  if (cat.includes('inap') || cat.includes('asrama') || cat.includes('transit') || cat.includes('hotel') || cat.includes('wisma')) return Bed
+  if (cat.includes('transport') || cat.includes('rute') || cat.includes('shuttle') || cat.includes('bus') || cat.includes('parkir')) return Bus
+  if (cat.includes('medis') || cat.includes('sehat') || cat.includes('obat') || cat.includes('dokter')) return HeartPulse
+  if (cat.includes('makan') || cat.includes('konsumsi') || cat.includes('dapur')) return Utensils
+  if (cat.includes('lokasi') || cat.includes('posko') || cat.includes('titik') || cat.includes('peta')) return MapPin
+  return Building2
+}
+
+function getGuideWhatsAppUrl(item: GuideInfoItem) {
+  const phone = (item.contact_wa || '6281234567890').replace(/[^0-9]/g, '')
+  const text = encodeURIComponent(`Assalamu'alaikum Panitia Rojabiyyah, saya ingin menanyakan panduan seputar [${item.category}]: "${item.title}". Mohon petunjuk informasinya. Terima kasih.`)
+  return `https://wa.me/${phone}?text=${text}`
+}
 
 function getWhatsAppUrl(item: TabarukanItem) {
   const phone = (item.contact_wa || '6281234567890').replace(/[^0-9]/g, '')
-  const text = encodeURIComponent(`Assalamu'alaikum Panitia Rojabiyyah, saya ingin menanyakan informasi seputar [${item.category}]: "${item.title}". Mohon informasi selengkapnya. Terima kasih.`)
+  const text = encodeURIComponent(`Assalamu'alaikum Panitia Rojabiyyah, saya ingin menanyakan pemesanan tabarukan: "${item.title}". Mohon informasi ketersediaan. Terima kasih.`)
   return `https://wa.me/${phone}?text=${text}`
 }
 
 function getCPWhatsAppUrl(cp: SecretariatContact) {
   const phone = (cp.whatsapp || cp.phone || '6281234567890').replace(/[^0-9]/g, '')
-  const text = encodeURIComponent(`Assalamu'alaikum ${cp.name} (${cp.role} Panitia Rojabiyyah), saya ingin menanyakan informasi seputar acara Haul & Rojabiyyah.`)
+  const text = encodeURIComponent(`Assalamu'alaikum ${cp.name} (${cp.role} Panitia Rojabiyyah), saya ingin menanyakan informasi seputar kegiatan Haul & Rojabiyyah.`)
   return `https://wa.me/${phone}?text=${text}`
 }
 
@@ -102,7 +128,7 @@ onMounted(() => {
           </h1>
 
           <p class="mt-4 text-sm sm:text-base text-emerald-100/90 max-w-2xl mx-auto font-light leading-relaxed">
-            Panduan resmi penyelenggaraan Haul Abah & Peringatan Rojabiyyah. Menampilkan cinderamata Tabarukan Khidmah, Narahubung Kesekretariatan, dan Peta Lokasi Acara.
+            Panduan resmi penyelenggaraan Haul Abah & Peringatan Rojabiyyah. Menampilkan info penginapan, transportasi, lokasi acara, narahubung kesekretariatan, dan cinderamata Tabarukan Khidmah.
           </p>
 
           <!-- Quick Navigation Pill Tabs -->
@@ -118,6 +144,19 @@ onMounted(() => {
               ]"
             >
               <span>Semua Informasi</span>
+            </button>
+            <button
+              type="button"
+              @click="activeTab = 'panduan'"
+              :class="[
+                'px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs',
+                activeTab === 'panduan' 
+                  ? 'bg-white text-emerald-900 shadow-md scale-105' 
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+              ]"
+            >
+              <Building2 class="w-3.5 h-3.5 text-emerald-400" />
+              <span>Panduan & Fasilitas</span>
             </button>
             <button
               type="button"
@@ -163,49 +202,123 @@ onMounted(() => {
       </section>
 
       <!-- ============================================================ -->
-      <!-- SECTION 1: KATALOG INFORMASI (FEED INSTAGRAM SQUARE SIZE) -->
+      <!-- SECTION 1: PANDUAN & FASILITAS ACARA (PENGINAPAN, TRANSPORT, MEDIS) -->
       <!-- ============================================================ -->
-      <section v-show="activeTab === 'all' || activeTab === 'tabarukan'" class="py-16 sm:py-20 border-b border-slate-100">
+      <section v-show="activeTab === 'all' || activeTab === 'panduan'" class="py-16 sm:py-20 border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <!-- Header Judul & Deskripsi (Area Luas, Rapi, & Tidak Terhimpit) -->
+          <!-- Header Judul & Deskripsi -->
           <div class="max-w-3xl pb-6 border-b border-slate-200">
             <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
               <Sparkles class="w-4 h-4 text-[#008f8a]" />
-              <span>Katalog Informasi & Layanan Jamaah</span>
+              <span>Panduan Layanan & Fasilitas Jamaah</span>
             </div>
             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-slate-900 leading-snug">
-              Informasi Acara, Penginapan & Tabarukan
+              Penginapan, Transportasi & Fasilitas Acara
             </h2>
             <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
-              Panduan resmi seputar penginapan jamaah, transportasi armada, lokasi acara, hingga cinderamata tabarukan berformat Feed Instagram.
+              Panduan resmi seputar fasilitas asrama penginapan santri, armada transportasi shuttle, posko kesehatan, dan layanan jamaah selama kegiatan Haul & Rojabiyyah.
             </p>
           </div>
 
-          <!-- Kategori Filter (Bar Tersendiri di Atas Grid, Rapi & Fleksibel) -->
+          <!-- Kategori Filter Panduan -->
           <div class="mt-6 flex items-center gap-2 bg-slate-50/90 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 overflow-x-auto sm:flex-wrap no-scrollbar">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 hidden sm:inline-block shrink-0">
               Kategori:
             </span>
             <button
-              v-for="cat in categories"
+              v-for="cat in guideCategories"
               :key="cat"
               type="button"
-              @click="selectedCategory = cat"
+              @click="selectedGuideCategory = cat"
               :class="[
                 'px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer capitalize shadow-2xs shrink-0',
-                selectedCategory === cat 
+                selectedGuideCategory === cat 
                   ? 'bg-[#008f8a] text-white shadow-sm font-bold scale-102' 
                   : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/70'
               ]"
             >
-              {{ cat === 'all' ? 'Semua Informasi' : cat }}
+              {{ cat === 'all' ? 'Semua Panduan' : cat }}
             </button>
+          </div>
+
+          <!-- Grid Kartu Panduan Berbasis Teks & Ikon (Tidak Wajib Foto Feed IG!) -->
+          <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              v-for="guide in filteredGuides"
+              :key="guide.id"
+              class="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs hover:shadow-lg transition-all flex flex-col justify-between group hover:border-[#008f8a]/40"
+            >
+              <div class="space-y-4">
+                <!-- Top Row: Category Badge + Icon -->
+                <div class="flex items-center justify-between">
+                  <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-[11px] font-bold tracking-wide uppercase">
+                    <component :is="getGuideCategoryIcon(guide.category)" class="w-3.5 h-3.5 text-[#008f8a]" />
+                    <span>{{ guide.category }}</span>
+                  </div>
+                </div>
+
+                <!-- Judul Panduan -->
+                <h3 class="text-lg font-serif font-bold text-slate-900 group-hover:text-[#008f8a] transition-colors leading-snug">
+                  {{ guide.title }}
+                </h3>
+
+                <!-- Catatan Lokasi / Titik -->
+                <div v-if="guide.location_note" class="flex items-start gap-2 text-xs font-medium text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <MapPin class="w-4 h-4 text-[#008f8a] shrink-0 mt-0.5" />
+                  <span class="line-clamp-2">{{ guide.location_note }}</span>
+                </div>
+
+                <!-- Penjelasan / Deskripsi Lengkap -->
+                <p class="text-xs text-slate-600 leading-relaxed font-normal">
+                  {{ guide.description }}
+                </p>
+
+                <!-- Opsional Foto jika diunggah -->
+                <div v-if="guide.image_url" class="relative rounded-2xl overflow-hidden aspect-video bg-slate-100 mt-2 border border-slate-100">
+                  <img :src="guide.image_url" :alt="guide.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                </div>
+              </div>
+
+              <!-- Tombol Hubungi Narahubung via WA -->
+              <div class="pt-5 mt-5 border-t border-slate-100">
+                <a
+                  :href="getGuideWhatsAppUrl(guide)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-full py-2.5 px-4 rounded-xl bg-slate-50 hover:bg-[#008f8a] text-slate-700 hover:text-white border border-slate-200 hover:border-transparent font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
+                >
+                  <MessageCircle class="w-4 h-4 text-[#008f8a] group-hover:text-white transition-colors" />
+                  <span>Tanya Info via WhatsApp</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SECTION 2: KATALOG TABARUKAN KHIDMAH (FORMAT FEED IG 1:1) -->
+      <!-- ============================================================ -->
+      <section v-show="activeTab === 'all' || activeTab === 'tabarukan'" class="py-16 sm:py-20 border-b border-slate-100 bg-[#f9fbfb]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Header Judul & Deskripsi -->
+          <div class="max-w-3xl pb-6 border-b border-slate-200">
+            <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
+              <ShoppingBag class="w-4 h-4 text-[#008f8a]" />
+              <span>Cinderamata & Berkah Khidmah</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-slate-900 leading-snug">
+              Katalog Tabarukan Haul & Rojabiyyah
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
+              Produk dan cinderamata resmi panitia berformat Feed Instagram persegi 1:1. Seluruh infaq dialokasikan untuk khidmah peringatan Haul Abah & Rojabiyyah.
+            </p>
           </div>
 
           <!-- Grid Feed Instagram (1:1 Square Format) -->
           <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <div
-              v-for="item in filteredTabarukan"
+              v-for="item in tabarukanStore.tabarukanItems"
               :key="item.id"
               @click="openDetailModal(item)"
               class="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer hover:-translate-y-1"
@@ -248,133 +361,129 @@ onMounted(() => {
                   <span class="text-xs font-bold text-[#008f8a]">
                     {{ item.price_info || 'Infaq Tabarukan' }}
                   </span>
-                  <span class="text-[10px] text-slate-400 font-medium">
-                    Feed IG
+                  <span class="text-[11px] text-slate-400 group-hover:text-[#008f8a] font-medium flex items-center gap-1">
+                    Detail <span class="text-xs">&rarr;</span>
                   </span>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- Empty State -->
-          <div v-if="filteredTabarukan.length === 0" class="py-12 text-center text-slate-400 text-xs">
-            Tidak ada item tabarukan untuk kategori yang dipilih.
-          </div>
         </div>
       </section>
 
       <!-- ============================================================ -->
-      <!-- SECTION 2: CP KESEKRETARIATAN (CONTACT PERSON) -->
+      <!-- SECTION 3: KONTAK PERSON (CP) KESEKRETARIATAN PANITIA -->
       <!-- ============================================================ -->
-      <section v-show="activeTab === 'all' || activeTab === 'cp'" class="py-16 sm:py-20 bg-slate-50/70 border-b border-slate-200">
+      <section v-show="activeTab === 'all' || activeTab === 'cp'" class="py-16 sm:py-20 border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="pb-6 border-b border-slate-200">
-            <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-1.5">
-              <PhoneCall class="w-4 h-4" />
-              <span>Narahubung & Layanan Panitia</span>
+          <div class="max-w-2xl mb-12">
+            <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
+              <PhoneCall class="w-4 h-4 text-[#008f8a]" />
+              <span>Layanan Jamaah & Narahubung</span>
             </div>
-            <h2 class="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
-              Contact Person Kesekretariatan
+            <h2 class="text-2xl sm:text-4xl font-serif font-bold text-slate-900 tracking-tight">
+              Kontak Person Kesekretariatan
             </h2>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-              Informasi narahubung resmi panitia untuk konfirmasi kehadiran, akomodasi, tabarukan, dan kebutuhan jamaah.
+            <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
+              Hubungi narahubung resmi panitia sesuai dengan kebutuhan Anda untuk konfirmasi kafilah, perizinan, dan akomodasi.
             </p>
           </div>
 
-          <!-- CP Cards Grid -->
-          <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Grid Kontak Panitia -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div
               v-for="cp in tabarukanStore.cpList"
               :key="cp.id"
-              class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+              class="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs hover:shadow-lg transition-all flex flex-col justify-between group hover:border-[#008f8a]/40"
             >
               <div>
-                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider block w-fit mb-2">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#008f8a] flex items-center justify-center font-bold mb-4 group-hover:scale-110 transition-transform">
+                  <PhoneCall class="w-5 h-5" />
+                </div>
+
+                <div class="text-[10px] font-bold text-[#008f8a] uppercase tracking-wider mb-1">
                   {{ cp.division }}
-                </span>
-                <h3 class="font-bold text-base text-slate-900 leading-snug">
+                </div>
+
+                <h3 class="font-bold text-base text-slate-900 group-hover:text-[#008f8a] transition-colors">
                   {{ cp.name }}
                 </h3>
-                <p class="text-xs text-slate-500 mt-0.5 font-medium">
+
+                <p class="text-xs text-slate-500 mt-1">
                   {{ cp.role }}
                 </p>
+
+                <div class="mt-4 pt-4 border-t border-slate-100 space-y-1.5 text-xs text-slate-600 font-medium">
+                  <div class="flex items-center gap-2">
+                    <PhoneCall class="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{{ cp.phone }}</span>
+                  </div>
+                  <div v-if="cp.email" class="flex items-center gap-2 text-slate-400">
+                    <Mail class="w-3.5 h-3.5" />
+                    <span class="truncate">{{ cp.email }}</span>
+                  </div>
+                </div>
               </div>
 
-              <div class="space-y-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
-                <div class="flex items-center gap-2">
-                  <PhoneCall class="w-3.5 h-3.5 text-[#008f8a] shrink-0" />
-                  <span class="font-mono">{{ cp.phone }}</span>
-                </div>
-                <div v-if="cp.email" class="flex items-center gap-2">
-                  <Mail class="w-3.5 h-3.5 text-[#008f8a] shrink-0" />
-                  <span class="truncate">{{ cp.email }}</span>
-                </div>
+              <div class="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2">
+                <a
+                  :href="getCPWhatsAppUrl(cp)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <MessageCircle class="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </a>
+                <a
+                  :href="`tel:${cp.phone.replace(/[^0-9+]/g, '')}`"
+                  class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                  title="Panggilan Telepon"
+                >
+                  <PhoneCall class="w-4 h-4" />
+                </a>
               </div>
-
-              <a
-                :href="getCPWhatsAppUrl(cp)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-              >
-                <MessageCircle class="w-4 h-4" />
-                <span>Chat WhatsApp</span>
-              </a>
             </div>
           </div>
         </div>
       </section>
 
       <!-- ============================================================ -->
-      <!-- SECTION 3: MAPS LOKASI ACARA -->
+      <!-- SECTION 4: PETA & LOKASI ACARA -->
       <!-- ============================================================ -->
-      <section v-show="activeTab === 'all' || activeTab === 'lokasi'" class="py-16 sm:py-20 bg-white">
+      <section v-show="activeTab === 'all' || activeTab === 'lokasi'" class="py-16 sm:py-20 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
-            <div>
-              <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-1.5">
-                <MapPin class="w-4 h-4" />
-                <span>Peta Penyelenggaraan</span>
-              </div>
-              <h2 class="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
-                Peta & Lokasi Acara
-              </h2>
-              <p class="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-                Pondok Pesantren Bumi Damai Al-Muhibbin, Bahrul 'Ulum Tambakberas, Jombang, Jawa Timur.
-              </p>
+          <div class="max-w-2xl mb-12">
+            <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
+              <MapPin class="w-4 h-4 text-[#008f8a]" />
+              <span>Panduan Rute & Transportasi</span>
             </div>
-
-            <a
-              href="https://maps.google.com/?q=Pondok+Pesantren+Bahrul+Ulum+Tambakberas+Jombang"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
-            >
-              <Navigation class="w-4 h-4" />
-              <span>Buka Petunjuk di Google Maps</span>
-              <ExternalLink class="w-3.5 h-3.5 opacity-80" />
-            </a>
+            <h2 class="text-2xl sm:text-4xl font-serif font-bold text-slate-900 tracking-tight">
+              Peta Lokasi Penyelenggaraan Acara
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
+              Panduan geografis kompleks pondok pesantren Bahrul 'Ulum Tambakberas, Jombang, Jawa Timur dan akses penjemputan jamaah.
+            </p>
           </div>
 
-          <div class="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <!-- Google Maps Embed Card (7/12) -->
-            <div class="lg:col-span-7 rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-sm p-4 sm:p-6 space-y-5">
-              <div class="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 relative">
-                <!-- Google Maps Interactive Iframe -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- Google Maps Iframe Container (7/12) -->
+            <div class="lg:col-span-7 rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-sm space-y-4 p-4">
+              <div class="relative w-full h-[360px] sm:h-[420px] rounded-2xl overflow-hidden bg-slate-200">
                 <iframe
-                  title="Peta Lokasi Tambakberas Jombang"
+                  title="Peta Lokasi Pesantren Bahrul Ulum Tambakberas"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3955.5188824194096!2d112.23594837582498!3d-7.518174574187053!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e783ffc47f75eb3%3A0xa61feea2d0bba6f7!2sPondok%20Pesantren%20Bahrul%20Ulum%20Tambakberas%20Jombang!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
                   width="100%"
                   height="100%"
                   style="border:0;"
+                  allowfullscreen="false"
                   loading="lazy"
-                  allowfullscreen
                   referrerpolicy="no-referrer-when-downgrade"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3955.3687352378956!2d112.22271877588045!3d-7.53472097436814!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e783ff3cbbf8c4d%3A0x6b4efb415a786272!2sPondok%20Pesantren%20Bahrul%20Ulum%20Tambakberas!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
+                  class="w-full h-full"
                 ></iframe>
               </div>
-
-              <div class="flex items-start gap-3 p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 text-xs text-slate-700">
-                <MapPin class="w-5 h-5 text-[#008f8a] shrink-0 mt-0.5" />
+              <div class="flex items-center gap-2 text-xs text-slate-600 px-2">
+                <MapPin class="w-4 h-4 text-[#008f8a] shrink-0" />
                 <div>
                   <strong class="text-slate-900 block font-bold">Titik Pusat Lokasi:</strong>
                   <span>Kompleks Pondok Pesantren Bahrul 'Ulum Tambakberas, Jl. KH. Wahab Chasbullah, Tambakrejo, Kec. Jombang, Kabupaten Jombang, Jawa Timur 61451.</span>
@@ -390,7 +499,7 @@ onMounted(() => {
                   <span>Akses Dari Stasiun Jombang (JG)</span>
                 </div>
                 <p class="text-xs text-slate-600 leading-relaxed font-normal">
-                  Jarak sekitar 3,5 KM ke utara dari Stasiun Kereta Api Jombang. Waktu tempuh sekitar 10 menit menggunakan transportasi roda empat atau ojek online ke Kompleks Tambakberas.
+                  Jarak sekitar 3,5 KM ke utara dari Stasiun Kereta Api Jombang. Waktu tempuh sekitar 10 menit menggunakan transportasi roda empat atau armada panitia ke Kompleks Tambakberas.
                 </p>
               </div>
 
@@ -446,7 +555,7 @@ onMounted(() => {
             <div>
               <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <span class="text-[11px] font-bold text-[#008f8a] uppercase tracking-wider">
-                  {{ activeModalItem.category || 'Informasi Layanan' }}
+                  {{ activeModalItem.category || 'Cinderamata Tabarukan' }}
                 </span>
                 <button
                   type="button"
@@ -462,7 +571,7 @@ onMounted(() => {
               </h3>
 
               <div class="mt-2 text-sm font-bold text-[#008f8a]">
-                {{ activeModalItem.price_info || 'Layanan Resmi Panitia' }}
+                {{ activeModalItem.price_info || 'Infaq Tabarukan Khidmah' }}
               </div>
 
               <p class="mt-3 text-xs text-slate-600 leading-relaxed">
@@ -471,7 +580,7 @@ onMounted(() => {
 
               <div class="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-2 text-[11px] text-emerald-800">
                 <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Informasi dan layanan resmi peringatan Haul Abah & Rojabiyyah.</span>
+                <span>Hasil tabarukan diperuntukkan bagi syiar dan khidmah peringatan Haul Abah & Rojabiyyah.</span>
               </div>
             </div>
 
@@ -483,12 +592,12 @@ onMounted(() => {
                 class="w-full py-3 px-4 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
               >
                 <MessageCircle class="w-4 h-4" />
-                <span>Pesan / Tanya via WhatsApp</span>
+                <span>Pesan Tabarukan via WhatsApp</span>
               </a>
               <button
                 type="button"
                 @click="closeDetailModal"
-                class="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-700 cursor-pointer text-center"
+                class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
               >
                 Tutup
               </button>
