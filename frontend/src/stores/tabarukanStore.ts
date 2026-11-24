@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export interface TabarukanItem {
   id: number
@@ -26,12 +26,44 @@ export interface SecretariatContact {
 
 const TABARUKAN_STORAGE_KEY = 'rojabiyyah_tabarukan_items'
 const CP_STORAGE_KEY = 'rojabiyyah_secretariat_cp'
+const CATEGORIES_STORAGE_KEY = 'rojabiyyah_info_categories'
+
+export const DEFAULT_INFO_CATEGORIES: string[] = [
+  'Penginapan',
+  'Transportasi',
+  'Lokasi Acara',
+  'Tabarukan',
+  'Konsumsi',
+  'Layanan Medis'
+]
 
 const DEFAULT_TABARUKAN_ITEMS: TabarukanItem[] = [
   {
     id: 1,
+    title: 'Penginapan & Asrama Transit Jamaah',
+    category: 'Penginapan',
+    description: 'Fasilitas asrama transit santri dan kafilah luar kota, info homestay warga serta wisma transit di sekitar pondok pesantren.',
+    image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+    price_info: 'Asrama Gratis & Homestay',
+    contact_wa: '6281234567890',
+    is_available: true,
+    created_at: '2026-08-19'
+  },
+  {
+    id: 2,
+    title: 'Rute & Shuttle Transportasi Acara',
+    category: 'Transportasi',
+    description: 'Panduan rute penjemputan dari Stasiun Jombang & Terminal, titik drop-off jamaah, serta lokasi kantong parkir resmi bus.',
+    image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
+    price_info: 'Layanan Shuttle Bus & Rute',
+    contact_wa: '6281234567890',
+    is_available: true,
+    created_at: '2026-08-19'
+  },
+  {
+    id: 3,
     title: 'Kaos Resmi Haul Abah & Rojabiyyah 2026',
-    category: 'Merchandise',
+    category: 'Tabarukan',
     description: 'Bahan Cotton Combed 24s premium, sablon discharge adem dan awet. Logo bordir emblem resmi Haul Abah & Rojabiyyah.',
     image_url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
     price_info: 'Infaq Tabarukan: Rp 85.000',
@@ -40,9 +72,9 @@ const DEFAULT_TABARUKAN_ITEMS: TabarukanItem[] = [
     created_at: '2026-08-20'
   },
   {
-    id: 2,
+    id: 4,
     title: 'Buku Manakib & Mauidhoh Abah KH. Moch. Djamaluddin Ahmad',
-    category: 'Kitab & Buku',
+    category: 'Tabarukan',
     description: 'Kumpulan nasihat, rekam jejak perjuangan dakwah, dan untaian mutiara hikmah Almaghfurlah Abah KH. Moch. Djamaluddin Ahmad.',
     image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
     price_info: 'Infaq Tabarukan: Rp 50.000',
@@ -51,26 +83,15 @@ const DEFAULT_TABARUKAN_ITEMS: TabarukanItem[] = [
     created_at: '2026-08-21'
   },
   {
-    id: 3,
-    title: 'Kopiah Hitam & Sorban Khidmah Rojabiyyah',
-    category: 'Atribut Santri',
-    description: 'Peci beludru istimewa berlogo emas resmi Haul dan sorban tenun halus lambang mahabbah dan khidmah santri.',
-    image_url: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=800&q=80',
-    price_info: 'Infaq Tabarukan: Rp 65.000',
+    id: 5,
+    title: 'Titik Pusat Posko Utama & Lokasi Acara',
+    category: 'Lokasi Acara',
+    description: 'Peta denah panggung utama, posko kesehatan, posko keamanan Banser, dan tenda tamu VIP & jamaah umum.',
+    image_url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
+    price_info: 'Kompleks Pesantren Bahrul Ulum',
     contact_wa: '6281234567890',
     is_available: true,
     created_at: '2026-08-22'
-  },
-  {
-    id: 4,
-    title: 'Minyak Wangi Non-Alkohol Khidmah Aroma Nabawi',
-    category: 'Wewangian',
-    description: 'Minyak wangi murni non-alkohol ramuan khas aroma kasturi dan oud segar, sangat cocok untuk menghadiri majelis dzikir & sholawat.',
-    image_url: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80',
-    price_info: 'Infaq Tabarukan: Rp 35.000',
-    contact_wa: '6281234567890',
-    is_available: true,
-    created_at: '2026-08-23'
   }
 ]
 
@@ -120,6 +141,69 @@ const DEFAULT_CP_ITEMS: SecretariatContact[] = [
 export const useTabarukanStore = defineStore('tabarukan', () => {
   const tabarukanItems = ref<TabarukanItem[]>([])
   const cpList = ref<SecretariatContact[]>([])
+  const customCategories = ref<string[]>([])
+
+  // Load custom categories
+  const savedCats = typeof window !== 'undefined' ? localStorage.getItem(CATEGORIES_STORAGE_KEY) : null
+  if (savedCats) {
+    try {
+      const parsed = JSON.parse(savedCats)
+      customCategories.value = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DEFAULT_INFO_CATEGORIES]
+    } catch {
+      customCategories.value = [...DEFAULT_INFO_CATEGORIES]
+    }
+  } else {
+    customCategories.value = [...DEFAULT_INFO_CATEGORIES]
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(DEFAULT_INFO_CATEGORIES))
+      } catch {}
+    }
+  }
+
+  function persistCategories() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(customCategories.value))
+      } catch (e) {
+        console.warn('LocalStorage error while saving categories:', e)
+      }
+    }
+  }
+
+  function addCategory(name: string) {
+    const trimmed = name.trim()
+    if (!trimmed) return false
+    const exists = customCategories.value.some(c => c.toLowerCase() === trimmed.toLowerCase())
+    if (!exists) {
+      customCategories.value.push(trimmed)
+      persistCategories()
+      return true
+    }
+    return false
+  }
+
+  function deleteCategory(name: string) {
+    customCategories.value = customCategories.value.filter(c => c.toLowerCase() !== name.toLowerCase())
+    persistCategories()
+    return true
+  }
+
+  function resetCategories() {
+    customCategories.value = [...DEFAULT_INFO_CATEGORIES]
+    persistCategories()
+  }
+
+  const allCategories = computed(() => {
+    const set = new Set<string>()
+    customCategories.value.forEach(c => {
+      if (c && c.trim()) set.add(c.trim())
+    })
+    tabarukanItems.value.forEach(item => {
+      if (item.category && item.category.trim()) set.add(item.category.trim())
+    })
+    return Array.from(set)
+  })
 
   // Load Tabarukan
   const savedTabarukan = typeof window !== 'undefined' ? localStorage.getItem(TABARUKAN_STORAGE_KEY) : null
@@ -178,6 +262,9 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
   }
 
   function saveTabarukanItem(item: Partial<TabarukanItem>) {
+    if (item.category && item.category.trim()) {
+      addCategory(item.category.trim())
+    }
     if (item.id) {
       const idx = tabarukanItems.value.findIndex(t => t.id === item.id)
       if (idx !== -1) {
@@ -189,10 +276,10 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     } else {
       const newItem: TabarukanItem = {
         id: Date.now(),
-        title: item.title || 'Tabarukan Haul & Rojabiyyah',
-        category: item.category || 'Merchandise',
+        title: item.title || 'Informasi Acara',
+        category: item.category || 'Penginapan',
         description: item.description || '',
-        image_url: item.image_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+        image_url: item.image_url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
         price_info: item.price_info || '',
         contact_wa: item.contact_wa || '6281234567890',
         is_available: item.is_available !== undefined ? item.is_available : true,
@@ -243,6 +330,11 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
   return {
     tabarukanItems,
     cpList,
+    customCategories,
+    allCategories,
+    addCategory,
+    deleteCategory,
+    resetCategories,
     saveTabarukanItem,
     deleteTabarukanItem,
     saveCP,

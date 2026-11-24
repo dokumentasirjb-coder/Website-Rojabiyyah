@@ -43,11 +43,7 @@ function closeDetailModal() {
 }
 
 const categories = computed(() => {
-  const cats = new Set<string>()
-  tabarukanStore.tabarukanItems.forEach(item => {
-    if (item.category) cats.add(item.category)
-  })
-  return ['all', ...Array.from(cats)]
+  return ['all', ...tabarukanStore.allCategories]
 })
 
 const filteredTabarukan = computed(() => {
@@ -57,7 +53,7 @@ const filteredTabarukan = computed(() => {
 
 function getWhatsAppUrl(item: TabarukanItem) {
   const phone = (item.contact_wa || '6281234567890').replace(/[^0-9]/g, '')
-  const text = encodeURIComponent(`Assalamu'alaikum Panitia Rojabiyyah, saya tertarik dan ingin memesan tabarukan: "${item.title}". Mohon informasi selengkapnya. Terima kasih.`)
+  const text = encodeURIComponent(`Assalamu'alaikum Panitia Rojabiyyah, saya ingin menanyakan informasi seputar [${item.category}]: "${item.title}". Mohon informasi selengkapnya. Terima kasih.`)
   return `https://wa.me/${phone}?text=${text}`
 }
 
@@ -167,7 +163,7 @@ onMounted(() => {
       </section>
 
       <!-- ============================================================ -->
-      <!-- SECTION 1: TABARUKAN (FEED INSTAGRAM SQUARE SIZE) -->
+      <!-- SECTION 1: KATALOG INFORMASI (FEED INSTAGRAM SQUARE SIZE) -->
       <!-- ============================================================ -->
       <section v-show="activeTab === 'all' || activeTab === 'tabarukan'" class="py-16 sm:py-20 border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -175,17 +171,17 @@ onMounted(() => {
             <div>
               <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-1.5">
                 <ShoppingBag class="w-4 h-4" />
-                <span>Cinderamata & Berkah Khidmah</span>
+                <span>Katalog Informasi, Layanan & Tabarukan</span>
               </div>
               <h2 class="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
-                Tabarukan Haul & Rojabiyyah
+                Informasi Acara, Penginapan & Tabarukan
               </h2>
               <p class="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-                Dokumentasi produk dan atribut resmi panitia berformat Feed Instagram. Seluruh infaq tabarukan dialokasikan untuk khidmah peringatan Haul & Rojabiyyah.
+                Panduan resmi seputar penginapan jamaah, transportasi armada, lokasi acara, hingga cinderamata tabarukan berformat Feed Instagram.
               </p>
             </div>
 
-            <!-- Kategori Filter -->
+            <!-- Kategori Filter (Dinamis & Dapat Disesuaikan) -->
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar shrink-0">
               <button
                 v-for="cat in categories"
@@ -193,13 +189,13 @@ onMounted(() => {
                 type="button"
                 @click="selectedCategory = cat"
                 :class="[
-                  'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer capitalize',
+                  'px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer capitalize shadow-2xs',
                   selectedCategory === cat 
-                    ? 'bg-[#008f8a] text-white shadow-xs' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-[#008f8a] text-white shadow-md font-bold scale-102' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                 ]"
               >
-                {{ cat === 'all' ? 'Semua Tabarukan' : cat }}
+                {{ cat === 'all' ? 'Semua Informasi' : cat }}
               </button>
             </div>
           </div>
@@ -448,7 +444,7 @@ onMounted(() => {
             <div>
               <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <span class="text-[11px] font-bold text-[#008f8a] uppercase tracking-wider">
-                  Cinderamata Tabarukan
+                  {{ activeModalItem.category || 'Informasi Layanan' }}
                 </span>
                 <button
                   type="button"
@@ -464,7 +460,7 @@ onMounted(() => {
               </h3>
 
               <div class="mt-2 text-sm font-bold text-[#008f8a]">
-                {{ activeModalItem.price_info || 'Infaq Tabarukan Khidmah' }}
+                {{ activeModalItem.price_info || 'Layanan Resmi Panitia' }}
               </div>
 
               <p class="mt-3 text-xs text-slate-600 leading-relaxed">
@@ -473,7 +469,7 @@ onMounted(() => {
 
               <div class="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-2 text-[11px] text-emerald-800">
                 <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Hasil tabarukan diperuntukkan bagi syiar dan khidmah peringatan Haul Abah & Rojabiyyah.</span>
+                <span>Informasi dan layanan resmi peringatan Haul Abah & Rojabiyyah.</span>
               </div>
             </div>
 
