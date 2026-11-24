@@ -1,7 +1,39 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/lib/axios'
-import type { SiteSettings, GalleryPhoto, GalleryAlbum, GalleryPhotoItem, ScheduleDay } from '@/types'
+import type { SiteSettings, GalleryPhoto, GalleryAlbum, GalleryPhotoItem, ScheduleDay, AboutStructureItem, AboutParagraphItem } from '@/types'
+
+export const DEFAULT_ABOUT_STRUCTURE_ITEMS: AboutStructureItem[] = [
+  {
+    id: 'struct-1',
+    title: 'Bahtsul Masail Diniyah',
+    subtitle: "Waqi'iyyah & Maudhu'iyyah",
+    description: "Forum permusyawaratan para fukaha dan ulama pesantren dalam membahas serta menetapkan hukum Islam atas berbagai dinamika keagamaan, sosial, dan kebangsaan terkini."
+  },
+  {
+    id: 'struct-2',
+    title: 'Sidang Komisi Organisasi',
+    subtitle: 'Program & Rekomendasi',
+    description: 'Evaluasi laporan pertanggungjawaban pimpinan pusat, perumusan garis-garis besar program kerja lima tahunan, penyempurnaan AD/ART, dan penerbitan rekomendasi strategis bagi kemaslahatan umat.'
+  },
+  {
+    id: 'struct-3',
+    title: 'Musyawarah AHWA',
+    subtitle: "Ahlul Halli wal 'Aqdi",
+    description: "Musyawarah penuh keadaban sembilan kiai sepuh terpilih untuk menetapkan Rais 'Aam Syuriyah PBNU, dilanjutkan musyawarah pemilihan Ketua Umum Tanfidziyah."
+  }
+]
+
+export const DEFAULT_ABOUT_HISTORY_PARAGRAPHS: AboutParagraphItem[] = [
+  {
+    id: 'hist-1',
+    text: "Dalam Muktamar, dibahas berbagai hukum atas masalah keagamaan dan kemasyarakatan melalui forum Bahtsul Masail, evaluasi organisasi, perumusan program kerja lima tahun ke depan, rekomendasi kebangsaan, hingga pemilihan Rais Aam dan Ketua Umum untuk periode berikutnya."
+  },
+  {
+    id: 'hist-2',
+    text: "Muktamar ke-35 mengusung tema “Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa” yang menegaskan komitmen jam’iyah dalam merawat integritas keulamaan, memberdayakan umat secara berkelanjutan, dan memberikan kontribusi nyata bagi masa depan peradaban."
+  }
+]
 
 export const DEFAULT_GALLERY_ALBUMS: GalleryAlbum[] = [
   {
@@ -298,6 +330,11 @@ const DEFAULT_SETTINGS: SiteSettings = {
   about_quote_label: 'TEMA RESMI MUKTAMAR KE-35',
   about_quote_text: 'Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa',
   about_quote_location: 'Pondok Pesantren Bahrul Ulum Tambakberas, Jombang • 27–31 Agustus 2026',
+  about_section_enabled: true,
+  about_history_enabled: true,
+  about_quote_enabled: true,
+  about_structure_items_json: DEFAULT_ABOUT_STRUCTURE_ITEMS,
+  about_history_paragraphs_json: DEFAULT_ABOUT_HISTORY_PARAGRAPHS,
   agenda_tag: 'JADWAL RESMI',
   agenda_title: 'Agenda Permusyawaratan',
   agenda_subtitle: 'Rangkaian sidang dan acara Muktamar ke-35 pada 27–31 Agustus 2026 di Pondok Pesantren Bahrul Ulum Tambakberas, Jombang. Jadwal dapat berubah sewaktu-waktu.',

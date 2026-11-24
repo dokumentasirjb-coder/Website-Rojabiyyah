@@ -3,9 +3,9 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
-import { useSettingsStore, DEFAULT_SCHEDULE_DAYS, DEFAULT_GALLERY_ALBUMS } from '@/stores/settingsStore'
+import { useSettingsStore, DEFAULT_SCHEDULE_DAYS, DEFAULT_GALLERY_ALBUMS, DEFAULT_ABOUT_STRUCTURE_ITEMS, DEFAULT_ABOUT_HISTORY_PARAGRAPHS } from '@/stores/settingsStore'
 import { useNewsStore } from '@/stores/newsStore'
-import type { GalleryPhoto, GalleryAlbum, GalleryPhotoItem, Article, ScheduleDay, ScheduleItem } from '@/types'
+import type { GalleryPhoto, GalleryAlbum, GalleryPhotoItem, Article, ScheduleDay, ScheduleItem, AboutStructureItem, AboutParagraphItem } from '@/types'
 import { 
   Layers, 
   Newspaper, 
@@ -180,6 +180,52 @@ function deleteSession(itemIdx: number) {
 async function saveAllAgenda() {
   formSettings.agenda_schedules_json = JSON.parse(JSON.stringify(schedules.value))
   await saveSettings('Agenda')
+}
+
+// ============================================================
+// TENTANG INTERACTIVE MANAGEMENT
+// ============================================================
+function initAboutContent() {
+  if (!Array.isArray(formSettings.about_structure_items_json) || formSettings.about_structure_items_json.length === 0) {
+    formSettings.about_structure_items_json = JSON.parse(JSON.stringify(DEFAULT_ABOUT_STRUCTURE_ITEMS))
+  }
+  if (!Array.isArray(formSettings.about_history_paragraphs_json) || formSettings.about_history_paragraphs_json.length === 0) {
+    formSettings.about_history_paragraphs_json = JSON.parse(JSON.stringify(DEFAULT_ABOUT_HISTORY_PARAGRAPHS))
+  }
+}
+
+function addAboutStructureItem() {
+  if (!Array.isArray(formSettings.about_structure_items_json)) {
+    formSettings.about_structure_items_json = []
+  }
+  formSettings.about_structure_items_json.push({
+    id: 'struct-' + Date.now(),
+    title: '',
+    subtitle: '',
+    description: ''
+  })
+}
+
+function removeAboutStructureItem(index: number) {
+  if (formSettings.about_structure_items_json && formSettings.about_structure_items_json.length > 0) {
+    formSettings.about_structure_items_json.splice(index, 1)
+  }
+}
+
+function addAboutHistoryParagraph() {
+  if (!Array.isArray(formSettings.about_history_paragraphs_json)) {
+    formSettings.about_history_paragraphs_json = []
+  }
+  formSettings.about_history_paragraphs_json.push({
+    id: 'hist-' + Date.now(),
+    text: ''
+  })
+}
+
+function removeAboutHistoryParagraph(index: number) {
+  if (formSettings.about_history_paragraphs_json && formSettings.about_history_paragraphs_json.length > 0) {
+    formSettings.about_history_paragraphs_json.splice(index, 1)
+  }
 }
 
 // ============================================================
@@ -920,6 +966,7 @@ onMounted(async () => {
   ])
   Object.assign(formSettings, settingsStore.settings)
   initSchedules()
+  initAboutContent()
 
   if (route.query.tab) {
     const validTabs = ['ringkasan', 'beranda', 'tentang', 'agenda', 'berita', 'galeri']
@@ -1469,105 +1516,69 @@ async function saveSettings(tabLabel: string) {
               ></textarea>
             </div>
 
-            <!-- Poin Terstruktur Baris-per-Baris -->
+            <!-- Poin Terstruktur Baris-per-Baris (Dinamis: Bisa Tambah, Edit, Hapus) -->
             <div class="space-y-4 pt-2">
-              <span class="block text-xs font-bold text-white uppercase tracking-wider">
-                Daftar Poin / Dimensi Terstruktur (Format Baris Bergaris)
-              </span>
-
-              <!-- Poin 1 -->
-              <div class="p-4 rounded-xl bg-[#04120e] border border-[#143d30] space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-emerald-400">Poin 1</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Judul Poin (Warna Tema)</label>
-                    <input
-                      v-model="formSettings.about_row_1_title"
-                      type="text"
-                      placeholder="Bahtsul Masail Diniyah"
-                      class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Sub-label / Kategori</label>
-                    <input
-                      v-model="formSettings.about_row_1_subtitle"
-                      type="text"
-                      placeholder="Waqi'iyyah & Maudhu'iyyah"
-                      class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
-                    />
-                  </div>
-                </div>
+              <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-[11px] font-semibold text-slate-300 mb-1">Teks Deskripsi / Penjelasan</label>
-                  <textarea
-                    v-model="formSettings.about_row_1_desc"
-                    rows="2"
-                    placeholder="Forum permusyawaratan para fukaha dan ulama pesantren..."
-                    class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
-                  ></textarea>
+                  <span class="block text-xs font-bold text-white uppercase tracking-wider">
+                    Daftar Poin / Dimensi Terstruktur (Format Baris Bergaris)
+                  </span>
+                  <span class="text-[11px] text-slate-400">Poin dapat ditambah, diubah isinya, atau dihapus secara bebas.</span>
                 </div>
+                <button
+                  type="button"
+                  @click="addAboutStructureItem"
+                  class="px-3 py-1.5 rounded-lg bg-[#008f8a]/20 border border-[#008f8a]/40 hover:bg-[#008f8a]/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus class="w-3.5 h-3.5" />
+                  <span>Tambah Poin</span>
+                </button>
               </div>
 
-              <!-- Poin 2 -->
-              <div class="p-4 rounded-xl bg-[#04120e] border border-[#143d30] space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-emerald-400">Poin 2</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Judul Poin (Warna Tema)</label>
-                    <input
-                      v-model="formSettings.about_row_2_title"
-                      type="text"
-                      placeholder="Sidang Komisi Organisasi"
-                      class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Sub-label / Kategori</label>
-                    <input
-                      v-model="formSettings.about_row_2_subtitle"
-                      type="text"
-                      placeholder="Program & Rekomendasi"
-                      class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-[11px] font-semibold text-slate-300 mb-1">Teks Deskripsi / Penjelasan</label>
-                  <textarea
-                    v-model="formSettings.about_row_2_desc"
-                    rows="2"
-                    placeholder="Evaluasi laporan pertanggungjawaban pimpinan pusat..."
-                    class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
-                  ></textarea>
-                </div>
+              <div v-if="!formSettings.about_structure_items_json || formSettings.about_structure_items_json.length === 0" class="p-6 text-center rounded-xl bg-[#04120e] border border-dashed border-[#143d30] text-slate-400 text-xs">
+                Belum ada poin terstruktur. Klik tombol "+ Tambah Poin" di atas untuk menambahkan.
               </div>
 
-              <!-- Poin 3 -->
-              <div class="p-4 rounded-xl bg-[#04120e] border border-[#143d30] space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-emerald-400">Poin 3</span>
+              <!-- Loop Poin Terstruktur -->
+              <div
+                v-for="(item, idx) in formSettings.about_structure_items_json"
+                :key="item.id || idx"
+                class="p-4 rounded-xl bg-[#04120e] border border-[#143d30] space-y-3 relative group"
+              >
+                <div class="flex items-center justify-between border-b border-[#143d30]/60 pb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-[#008f8a]/20 text-emerald-400 font-bold text-[11px] flex items-center justify-center border border-[#008f8a]/30">
+                      {{ idx + 1 }}
+                    </span>
+                    <span class="text-xs font-bold text-emerald-400">Poin {{ idx + 1 }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click="removeAboutStructureItem(idx)"
+                    class="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    title="Hapus Poin Ini"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                    <span>Hapus Poin</span>
+                  </button>
                 </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">Judul Poin (Warna Tema)</label>
                     <input
-                      v-model="formSettings.about_row_3_title"
+                      v-model="item.title"
                       type="text"
-                      placeholder="Musyawarah AHWA"
+                      placeholder="Contoh: Bahtsul Masail Diniyah"
                       class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
                     />
                   </div>
                   <div>
                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">Sub-label / Kategori</label>
                     <input
-                      v-model="formSettings.about_row_3_subtitle"
+                      v-model="item.subtitle"
                       type="text"
-                      placeholder="Ahlul Halli wal 'Aqdi"
+                      placeholder="Contoh: Waqi'iyyah & Maudhu'iyyah"
                       class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
                     />
                   </div>
@@ -1575,9 +1586,9 @@ async function saveSettings(tabLabel: string) {
                 <div>
                   <label class="block text-[11px] font-semibold text-slate-300 mb-1">Teks Deskripsi / Penjelasan</label>
                   <textarea
-                    v-model="formSettings.about_row_3_desc"
+                    v-model="item.description"
                     rows="2"
-                    placeholder="Musyawarah penuh keadaban sembilan kiai sepuh terpilih..."
+                    placeholder="Tuliskan penjelasan mengenai poin ini..."
                     class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
                   ></textarea>
                 </div>
@@ -1618,27 +1629,60 @@ async function saveSettings(tabLabel: string) {
               </div>
             </div>
 
+            <!-- Daftar Paragraf Naratif Dinamis (Bisa Tambah, Edit, Hapus) -->
             <div class="space-y-4 pt-2">
-              <div>
-                <label class="block text-xs font-bold text-white mb-1.5">
-                  Paragraf Narasi 1 (Paragraf 2)
-                </label>
-                <textarea
-                  v-model="formSettings.about_paragraph_2"
-                  rows="3"
-                  class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
-                ></textarea>
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="block text-xs font-bold text-white uppercase tracking-wider">
+                    Daftar Paragraf Narasi Sejarah & Khidmah
+                  </span>
+                  <span class="text-[11px] text-slate-400">Setiap paragraf dapat diedit, ditambah, atau dihapus secara bebas.</span>
+                </div>
+                <button
+                  type="button"
+                  @click="addAboutHistoryParagraph"
+                  class="px-3 py-1.5 rounded-lg bg-[#008f8a]/20 border border-[#008f8a]/40 hover:bg-[#008f8a]/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus class="w-3.5 h-3.5" />
+                  <span>Tambah Paragraf</span>
+                </button>
               </div>
 
-              <div>
-                <label class="block text-xs font-bold text-white mb-1.5">
-                  Paragraf Narasi 2 (Paragraf 3)
-                </label>
-                <textarea
-                  v-model="formSettings.about_paragraph_3"
-                  rows="3"
-                  class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
-                ></textarea>
+              <div v-if="!formSettings.about_history_paragraphs_json || formSettings.about_history_paragraphs_json.length === 0" class="p-6 text-center rounded-xl bg-[#04120e] border border-dashed border-[#143d30] text-slate-400 text-xs">
+                Belum ada paragraf narasi. Klik tombol "+ Tambah Paragraf" di atas untuk menambahkan.
+              </div>
+
+              <!-- Loop Paragraf Narasi -->
+              <div
+                v-for="(para, idx) in formSettings.about_history_paragraphs_json"
+                :key="para.id || idx"
+                class="p-4 rounded-xl bg-[#04120e] border border-[#143d30] space-y-2 relative group"
+              >
+                <div class="flex items-center justify-between border-b border-[#143d30]/60 pb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-[#008f8a]/20 text-emerald-400 font-bold text-[11px] flex items-center justify-center border border-[#008f8a]/30">
+                      {{ idx + 1 }}
+                    </span>
+                    <span class="text-xs font-bold text-emerald-400">Paragraf {{ idx + 1 }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click="removeAboutHistoryParagraph(idx)"
+                    class="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    title="Hapus Paragraf Ini"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                    <span>Hapus Paragraf</span>
+                  </button>
+                </div>
+                <div>
+                  <textarea
+                    v-model="para.text"
+                    rows="3"
+                    placeholder="Tuliskan narasi paragraf di sini..."
+                    class="w-full px-3 py-2 rounded-lg bg-[#071913] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                  ></textarea>
+                </div>
               </div>
             </div>
 

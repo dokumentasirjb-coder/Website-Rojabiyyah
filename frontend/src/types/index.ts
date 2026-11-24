@@ -80,6 +80,18 @@ export interface PaginationMeta {
   total: number
 }
 
+export interface AboutStructureItem {
+  id: string
+  title: string
+  subtitle?: string
+  description: string
+}
+
+export interface AboutParagraphItem {
+  id: string
+  text: string
+}
+
 export interface GalleryPhotoItem {
   id: number | string
   albumId: number | string
@@ -175,6 +187,11 @@ export interface SiteSettings {
   about_quote_label?: string
   about_quote_text?: string
   about_quote_location?: string
+  about_structure_items_json?: AboutStructureItem[]
+  about_history_paragraphs_json?: AboutParagraphItem[]
+  about_section_enabled?: boolean
+  about_history_enabled?: boolean
+  about_quote_enabled?: boolean
   agenda_tag?: string
   agenda_title?: string
   agenda_subtitle?: string
