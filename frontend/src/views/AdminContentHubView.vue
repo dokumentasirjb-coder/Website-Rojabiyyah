@@ -2158,22 +2158,6 @@ async function saveSettings(tabLabel: string) {
               </div>
             </div>
 
-            <!-- Upload Foto Sampul Berita (Utama) -->
-            <div class="p-4 sm:p-5 rounded-2xl bg-[#071913] border border-[#143d30] space-y-3">
-              <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-white flex items-center gap-2">
-                  <ImageIcon class="w-4 h-4 text-emerald-400" />
-                  <span>Foto Sampul Berita (Utama) *</span>
-                </label>
-                <span class="text-[10px] text-emerald-400/90 font-medium">JPG, PNG, atau WebP</span>
-              </div>
-              <ImageUploadInput
-                v-model="articleForm.cover_image"
-                description="Pilih foto sampul berita langsung dari laptop/komputer Anda untuk kartu berita dan banner artikel."
-                aspect="wide"
-              />
-            </div>
-
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label class="text-xs font-bold text-slate-300">
