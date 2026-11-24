@@ -6,49 +6,39 @@ const settingsStore = useSettingsStore()
 
 <template>
   <div class="bg-white text-slate-900 transition-colors">
-    <!-- Header / Intro Bar with Subtle Bottom Border -->
-    <div class="border-b border-slate-100">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-baseline">
-          <div class="lg:col-span-5 space-y-1.5">
-            <span class="text-[11px] font-bold tracking-[0.25em] uppercase text-[#008f8a] block">
-              {{ settingsStore.settings.about_tag || 'TENTANG MUKTAMAR' }}
-            </span>
-            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
-              {{ settingsStore.settings.about_title || 'Permusyawaratan akbar para ulama Nusantara' }}
-            </h1>
-          </div>
-          <div class="lg:col-span-7">
-            <p class="text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed font-normal">
-              {{ settingsStore.settings.about_subtitle || 'Muktamar adalah forum tertinggi dalam Nahdlatul Ulama. Muktamar ke-35 digelar pada 27–31 Agustus 2026 di Jombang, Jawa Timur.' }}
-            </p>
-          </div>
+    <!-- Top Hero Banner with Image Fade (Matching Screenshot & Other Pages) -->
+    <div class="relative bg-white border-b border-slate-100 overflow-hidden min-h-[340px] sm:min-h-[400px] lg:min-h-[440px] flex items-center">
+      <!-- Background / Right-aligned Banner Photo with Smooth White Fade -->
+      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0">
+        <img
+          :src="settingsStore.settings.banner_tentang_url || 'https://images.unsplash.com/photo-1590076215667-875d4ef2d7ee?auto=format&fit=crop&w=1200&q=80'"
+          alt="Latar Belakang Tentang Muktamar"
+          class="w-full h-full object-cover object-center opacity-80"
+        />
+        <div class="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+      </div>
+
+      <!-- Banner Header Text -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 relative z-10 w-full">
+        <div class="max-w-2xl space-y-3 sm:space-y-4">
+          <span class="inline-block text-[11px] font-bold tracking-[0.2em] uppercase text-[#008f8a]">
+            {{ settingsStore.settings.about_tag || 'TENTANG MUKTAMAR' }}
+          </span>
+          <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 leading-tight">
+            {{ settingsStore.settings.about_title || 'Permusyawaratan akbar para ulama Nusantara' }}
+          </h1>
+          <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed pt-1">
+            {{ settingsStore.settings.about_subtitle || 'Muktamar adalah forum tertinggi dalam Nahdlatul Ulama. Muktamar ke-35 digelar pada 27–31 Agustus 2026 di Jombang, Jawa Timur.' }}
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- Editorial Image Banner (Optional Admin Controlled Photo) -->
-    <div 
-      v-if="settingsStore.settings.banner_tentang_url"
-      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-4"
-    >
-      <div class="overflow-hidden rounded-2xl border border-slate-100 shadow-sm bg-slate-50">
-        <img
-          :src="settingsStore.settings.banner_tentang_url"
-          alt="Dokumentasi Tentang Muktamar"
-          class="w-full h-auto max-h-[520px] object-cover object-center"
-        />
-      </div>
-      <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2.5 px-1 italic">
-        <span>Dokumentasi Resmi Jam'iyah Nahdlatul Ulama</span>
-        <span>Jombang, Jawa Timur</span>
-      </div>
-    </div>
-
-    <!-- Section Block 1: Struktur & Dimensi Utama -->
+    <!-- Section Block 1: Struktur & Dimensi Utama (Tata Letak Terstruktur) -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 border-b border-slate-100">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
-        <!-- Kolom Kiri: Overline & Judul Besar -->
+        <!-- Kolom Kiri: Overline & Judul Besar Samping -->
         <div class="lg:col-span-5 space-y-2">
           <span class="text-[11px] font-bold tracking-[0.2em] uppercase text-slate-400 block">
             {{ settingsStore.settings.about_section_label || 'APA ITU MUKTAMAR' }}
@@ -65,7 +55,7 @@ const settingsStore = useSettingsStore()
             {{ settingsStore.settings.about_paragraph_1 || 'Muktamar merupakan permusyawaratan tertinggi Nahdlatul Ulama yang diselenggarakan setiap lima tahun. Forum ini mempertemukan para ulama, kiai, pengurus, badan otonom, dan warga Nahdliyyin dari seluruh Indonesia, bahkan mancanegara.' }}
           </p>
 
-          <!-- Structured Rows (Matching PBNU / PWNU / PCNU table in screenshot) -->
+          <!-- Structured Rows (Format PBNU / PWNU / PCNU dengan Garis Pembatas Halus) -->
           <div class="border-t border-slate-200/80 divide-y divide-slate-100">
             <!-- Row 1 -->
             <div class="py-4 sm:py-5 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-6 items-baseline">
@@ -116,7 +106,7 @@ const settingsStore = useSettingsStore()
       </div>
     </div>
 
-    <!-- Section Block 2: Sekilas & Visi Sejarah -->
+    <!-- Section Block 2: Sekilas & Visi Sejarah (Ulasan Narasi & Kutipan Tema) -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         <!-- Kolom Kiri -->
