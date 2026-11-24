@@ -1142,37 +1142,9 @@ async function saveSettings(tabLabel: string) {
         </div>
 
         <!-- Top Right Action Button -->
-        <div class="flex items-center gap-2.5">
-          <template v-if="activeTab === 'berita' && newsMode === 'form'">
-            <button
-              type="button"
-              @click="newsMode = 'list'"
-              class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-slate-300 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-[#143d30]"
-            >
-              <ArrowLeft class="w-3.5 h-3.5" />
-              <span>Batal</span>
-            </button>
-            <button
-              type="button"
-              @click="handleSaveArticle('draft')"
-              class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
-              title="Simpan sebagai draf (belum tampil ke publik)"
-            >
-              <BookmarkCheck class="w-3.5 h-3.5" />
-              <span>Simpan Draf</span>
-            </button>
-            <button
-              type="button"
-              @click="handleSaveArticle('published')"
-              class="px-5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:brightness-110 active:scale-95"
-              title="Kirim dan terbitkan langsung ke publik"
-            >
-              <Send class="w-3.5 h-3.5" />
-              <span>Terbitkan ke Publik</span>
-            </button>
-          </template>
+        <div class="flex items-center gap-3">
           <button
-            v-else-if="activeTab === 'berita' && newsMode === 'list'"
+            v-if="activeTab === 'berita' && newsMode === 'list'"
             type="button"
             @click="openAddArticle"
             class="px-4 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-sm cursor-pointer"
@@ -2132,7 +2104,7 @@ async function saveSettings(tabLabel: string) {
         <!-- VIEW 1: FORM TULIS / UBAH BERITA (Screenshots 2 & 3) -->
         <!-- ------------------------------------------------------------ -->
         <div v-if="newsMode === 'form'" class="space-y-6">
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#143d30] pb-4">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
             <button
               type="button"
               @click="newsMode = 'list'"
@@ -2141,26 +2113,6 @@ async function saveSettings(tabLabel: string) {
               <ArrowLeft class="w-4 h-4" />
               <span>Kembali ke Daftar Berita</span>
             </button>
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                @click="handleSaveArticle('draft')"
-                class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
-                title="Simpan sebagai draf (belum tampil ke publik)"
-              >
-                <BookmarkCheck class="w-4 h-4" />
-                <span>Simpan Draf</span>
-              </button>
-              <button
-                type="button"
-                @click="handleSaveArticle('published')"
-                class="px-5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm hover:brightness-110 active:scale-95"
-                title="Kirim dan terbitkan langsung ke publik"
-              >
-                <Send class="w-4 h-4" />
-                <span>Terbitkan ke Publik</span>
-              </button>
-            </div>
           </div>
 
           <!-- Section 1: Isi Berita -->
@@ -2328,28 +2280,6 @@ async function saveSettings(tabLabel: string) {
                       <span>Pratinjau Hasil</span>
                     </button>
                   </div>
-
-                  <!-- Tombol Aksi saat Layar Penuh -->
-                  <template v-if="isContentFullscreen">
-                    <button
-                      type="button"
-                      @click="handleSaveArticle('draft')"
-                      class="px-3.5 py-1.5 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 font-semibold text-xs flex items-center gap-1.5 cursor-pointer border border-emerald-500/30"
-                      title="Simpan sebagai draf"
-                    >
-                      <BookmarkCheck class="w-3.5 h-3.5" />
-                      <span>Draf</span>
-                    </button>
-                    <button
-                      type="button"
-                      @click="handleSaveArticle('published')"
-                      class="px-4 py-1.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm hover:brightness-110 active:scale-95"
-                      title="Kirim dan terbitkan langsung ke publik"
-                    >
-                      <Send class="w-3.5 h-3.5" />
-                      <span>Terbitkan</span>
-                    </button>
-                  </template>
 
                   <!-- Tombol Mode Layar Penuh / Perkecil -->
                   <button
