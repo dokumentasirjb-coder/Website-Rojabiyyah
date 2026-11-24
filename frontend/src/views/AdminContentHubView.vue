@@ -3564,7 +3564,7 @@ async function saveSettings(tabLabel: string) {
             <div class="text-[11px] text-slate-400 font-medium">Dashboard / Konten Situs / Informasi Umum</div>
             <h2 class="text-xl font-bold text-white mt-1">Kelola Informasi Umum</h2>
             <p class="text-xs text-slate-400 mt-0.5">
-              Kelola item Tabarukan (ukuran Feed IG), Kontak Person (CP) Kesekretariatan, dan panduan Peta Lokasi.
+              Kelola item Tabarukan (ukuran Feed IG), Kontak Person (CP) Kesekretariatan, panduan Peta Lokasi, dan banner header.
             </p>
           </div>
           <div class="flex items-center gap-3">
@@ -3585,6 +3585,33 @@ async function saveSettings(tabLabel: string) {
               <span>+ Tambah CP Panitia</span>
             </button>
           </div>
+        </div>
+
+        <!-- BANNER HEADER INFORMASI UMUM -->
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-4">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 mb-1">
+                <ImageIcon class="w-3.5 h-3.5" />
+                <span>Foto Latar Atas</span>
+              </div>
+              <h3 class="text-base font-bold text-white">Foto Banner Header Informasi Umum</h3>
+              <p class="text-xs text-slate-400 mt-0.5">Unggah foto dari komputer untuk mengganti latar belakang header halaman Informasi Umum.</p>
+            </div>
+            <button
+              type="button"
+              @click="saveSettings('Informasi Umum')"
+              class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Save class="w-4 h-4" />
+              <span>Simpan Banner</span>
+            </button>
+          </div>
+          <ImageUploadInput
+            v-model="formSettings.banner_informasi_url"
+            label="Foto Banner Header (Unggah dari Komputer)"
+            description="Pilih foto langsung dari komputer Anda untuk latar belakang atas Informasi Umum (/informasi)."
+          />
         </div>
 
         <!-- 1. TABARUKAN KHIDMAH (FEED IG SIZE) -->

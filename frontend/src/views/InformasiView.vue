@@ -81,9 +81,19 @@ onMounted(() => {
       <!-- ============================================================ -->
       <!-- HERO HEADER: INFORMASI UMUM -->
       <!-- ============================================================ -->
-      <section class="relative bg-gradient-to-b from-[#02231c] via-[#043329] to-[#08473a] text-white pt-32 pb-20 sm:pt-36 sm:pb-24 overflow-hidden border-b border-emerald-950">
-        <!-- Background Pattern -->
-        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none"></div>
+      <section class="relative bg-slate-950 text-white pt-32 pb-20 sm:pt-36 sm:pb-24 overflow-hidden border-b border-emerald-950">
+        <!-- Background Photo Container with Overlays -->
+        <div class="absolute inset-0 z-0">
+          <img
+            :src="settingsStore.settings.banner_informasi_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=2000&q=80'"
+            alt="Latar Belakang Informasi Umum"
+            class="w-full h-full object-cover object-center"
+          />
+          <!-- Dark Islamic green overlay for readability and branding consistency -->
+          <div class="absolute inset-0 bg-[#02231c]/75 backdrop-blur-[1px]"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-[#02231c] via-[#02231c]/60 to-[#02231c]/80"></div>
+          <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none"></div>
+        </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-md shadow-xs">

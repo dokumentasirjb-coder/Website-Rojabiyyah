@@ -161,6 +161,7 @@ export interface SiteSettings {
   banner_agenda_url: string
   banner_berita_url: string
   banner_galeri_url: string
+  banner_informasi_url?: string
   hero_headline_1: string
   hero_headline_2: string
   hero_headline_3: string

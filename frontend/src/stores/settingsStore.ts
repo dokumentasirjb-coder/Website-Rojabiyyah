@@ -304,6 +304,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   banner_agenda_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1400&q=80',
   banner_berita_url: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1400&q=80',
   banner_galeri_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1400&q=80',
+  banner_informasi_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=2000&q=80',
   hero_headline_1: 'Muktamar',
   hero_headline_2: 'Nahdlatul Ulama',
   hero_headline_3: 'Ke-35',

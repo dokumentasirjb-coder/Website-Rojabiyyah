@@ -775,6 +775,15 @@ function handleReset() {
                   description="Pilih foto dokumentasi langsung dari komputer Anda untuk halaman Galeri (/galeri)."
                 />
               </div>
+
+              <!-- Banner Informasi Umum -->
+              <div class="p-4 rounded-2xl bg-[#071913] border border-[#143d30] space-y-2">
+                <ImageUploadInput
+                  v-model="form.banner_informasi_url"
+                  label="6. Banner Halaman Informasi Umum"
+                  description="Pilih foto langsung dari komputer Anda untuk latar belakang hero halaman Informasi Umum (/informasi)."
+                />
+              </div>
             </div>
           </div>
 
