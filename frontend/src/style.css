@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Official Muktamar Colors from Reference Screenshots */
+  --color-muktamar-teal: #008f8a;
+  --color-muktamar-teal-hover: #007a76;
+  --color-muktamar-green: #006432;
+  --color-muktamar-gold: #b38856;
+  --color-muktamar-dark: #111827;
+  --color-muktamar-gray: #4b5563;
+  --color-muktamar-border: #f1f2f4;
+  --color-muktamar-bg: #ffffff;
+}
+
+@layer base {
+  body {
+    background-color: #ffffff;
+    color: #111827;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+}

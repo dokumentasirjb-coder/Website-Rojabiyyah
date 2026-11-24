@@ -1,0 +1,24 @@
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import Navbar from '@/components/Navbar.vue'
+import TentangSection from '@/views/sections/TentangSection.vue'
+import Footer from '@/components/Footer.vue'
+import { useSettingsStore } from '@/stores/settingsStore'
+
+const settingsStore = useSettingsStore()
+
+onMounted(() => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  settingsStore.fetchSettings()
+})
+</script>
+
+<template>
+  <div class="min-h-screen flex flex-col bg-[#faf9f6] text-slate-900 font-sans">
+    <Navbar />
+    <main class="flex-1">
+      <TentangSection />
+    </main>
+    <Footer />
+  </div>
+</template>
