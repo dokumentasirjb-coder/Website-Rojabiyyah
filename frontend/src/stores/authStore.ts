@@ -1,39 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api, { LOCAL_OFFLINE_TOKEN, resetApiOfflineStatus } from '@/lib/axios'
+import api from '@/lib/axios'
 import type { Author } from '@/types'
-
-const LOCAL_CREDENTIALS_KEY = 'admin_local_credentials'
-
-const DEFAULT_LOCAL_CREDENTIALS = {
-  email: 'admin@rojabiyyah.id',
-  password: 'Rojabiyyah2026!',
-}
-
-function getLocalCredentials(): { email: string; password: string } {
-  try {
-    const raw = localStorage.getItem(LOCAL_CREDENTIALS_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed?.email && parsed?.password) {
-        return { email: String(parsed.email), password: String(parsed.password) }
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return { ...DEFAULT_LOCAL_CREDENTIALS }
-}
-
-function buildLocalUser(): Author {
-  return {
-    id: 1,
-    name: 'Panitia Rojabiyyah',
-    role: 'admin',
-    avatar: '',
-    bio: '',
-  }
-}
 
 function getSavedUser(): Author | null {
   const saved = localStorage.getItem('admin_user')
@@ -79,7 +47,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     isLoading.value = true
     error.value = null
-    resetApiOfflineStatus()
     try {
       const response = await api.post<{
         success: boolean
@@ -108,23 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: false, message: msg }
       }
 
-      // Fallback login lokal jika server API belum terhubung / offline
-      const isNetworkError = !err.response || err.response.status >= 500 || err.response.status === 404
-      const localCreds = getLocalCredentials()
-      if (
-        isNetworkError &&
-        email.trim().toLowerCase() === localCreds.email.toLowerCase() &&
-        password === localCreds.password
-      ) {
-        const localUser = buildLocalUser()
-        token.value = LOCAL_OFFLINE_TOKEN
-        user.value = localUser
-        localStorage.setItem('admin_token', LOCAL_OFFLINE_TOKEN)
-        localStorage.setItem('admin_user', JSON.stringify(localUser))
-        return { success: true }
-      }
-
-      const msg = err.response?.data?.message || 'Email atau kata sandi tidak cocok.'
+      const msg = err.response?.data?.message || 'Gagal terhubung ke server atau kredensial tidak cocok.'
       error.value = msg
       return { success: false, message: msg }
     } finally {
@@ -134,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
-      if (token.value && token.value !== LOCAL_OFFLINE_TOKEN) {
+      if (token.value) {
         await api.post('/logout')
       }
     } catch (err) {
@@ -149,10 +100,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchCurrentUser() {
     if (!token.value) return
-    if (token.value === LOCAL_OFFLINE_TOKEN) {
-      user.value = getSavedUser() || buildLocalUser()
-      return
-    }
     try {
       const res = await api.get<{ success: boolean; data: Author }>('/me')
       if (res.data?.data) {
@@ -165,7 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function getAdminEmail() {
-    return getLocalCredentials().email
+    return (user.value as any)?.email || ''
   }
 
   async function updateLocalCredentials(currentPassword: string, newEmail: string, newPassword: string) {
@@ -177,45 +124,21 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: false, message: 'Kata sandi baru minimal 6 karakter.' }
     }
 
-    // Jika sedang login dengan Sanctum token asli, ubah langsung di database MySQL Laravel
-    if (token.value && token.value !== LOCAL_OFFLINE_TOKEN) {
-      try {
-        const res = await api.post<{ success: boolean; message: string; data: Author }>('/change-password', {
-          current_password: currentPassword,
-          email: trimmedEmail,
-          new_password: newPassword,
-        })
-        if (res.data?.data) {
-          user.value = res.data.data
-          localStorage.setItem('admin_user', JSON.stringify(res.data.data))
-        }
-        // Sinkronkan juga kredensial lokal agar tetap konsisten
-        localStorage.setItem(
-          LOCAL_CREDENTIALS_KEY,
-          JSON.stringify({ email: trimmedEmail, password: newPassword })
-        )
-        return { success: true, message: res.data?.message || 'Email dan kata sandi admin berhasil diperbarui di database!' }
-      } catch (err: any) {
-        const msg = err.response?.data?.message || 'Gagal memperbarui kata sandi di server.'
-        return { success: false, message: msg }
+    try {
+      const res = await api.post<{ success: boolean; message: string; data: Author }>('/change-password', {
+        current_password: currentPassword,
+        email: trimmedEmail,
+        new_password: newPassword,
+      })
+      if (res.data?.data) {
+        user.value = res.data.data
+        localStorage.setItem('admin_user', JSON.stringify(res.data.data))
       }
+      return { success: true, message: res.data?.message || 'Email dan kata sandi admin berhasil diperbarui di database!' }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Gagal memperbarui kata sandi di server.'
+      return { success: false, message: msg }
     }
-
-    // Mode offline/lokal
-    const localCreds = getLocalCredentials()
-    if (currentPassword !== localCreds.password) {
-      return { success: false, message: 'Kata sandi saat ini tidak cocok.' }
-    }
-
-    localStorage.setItem(
-      LOCAL_CREDENTIALS_KEY,
-      JSON.stringify({ email: trimmedEmail, password: newPassword })
-    )
-    const updatedUser = buildLocalUser()
-    user.value = updatedUser
-    localStorage.setItem('admin_user', JSON.stringify(updatedUser))
-
-    return { success: true, message: 'Email dan kata sandi admin berhasil diperbarui!' }
   }
 
   return {

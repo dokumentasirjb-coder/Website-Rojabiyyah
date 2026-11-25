@@ -136,18 +136,24 @@ async function handleSave() {
     setTimeout(() => {
       showToast.value = false
     }, 3500)
+  } else {
+    uiStore.notify(res.message || 'Gagal menyimpan pengaturan ke server.', 'error')
   }
 }
 
 async function handleReset() {
   if (await uiStore.askConfirm('Apakah Anda yakin ingin mengembalikan semua teks, tema warna, banner, konten tentang, footer, dan medsos ke pengaturan bawaan awal?', { title: 'Reset Pengaturan Standar', confirmText: 'Ya, Reset', variant: 'warning' })) {
-    await settingsStore.resetToDefault()
-    Object.assign(form, settingsStore.settings)
-    applyTheme(form)
-    showToast.value = true
-    setTimeout(() => {
-      showToast.value = false
-    }, 3500)
+    const res = await settingsStore.resetToDefault()
+    if (res.success) {
+      Object.assign(form, settingsStore.settings)
+      applyTheme(form)
+      showToast.value = true
+      setTimeout(() => {
+        showToast.value = false
+      }, 3500)
+    } else {
+      uiStore.notify(res.message || 'Gagal mereset pengaturan di server.', 'error')
+    }
   }
 }
 </script>

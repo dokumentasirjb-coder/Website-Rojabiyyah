@@ -227,4 +227,5 @@ export interface SiteSettings {
   agenda_schedules_json?: any[]
   gallery_items_json?: GalleryPhoto[]
   gallery_albums_json?: GalleryAlbum[]
+  informasi_data_json?: any
 }

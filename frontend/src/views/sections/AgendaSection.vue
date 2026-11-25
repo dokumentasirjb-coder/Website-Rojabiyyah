@@ -42,10 +42,10 @@ function toggleAccordion(item: ScheduleItem) {
             {{ settingsStore.settings.agenda_tag || 'JADWAL RESMI' }}
           </span>
           <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 leading-tight">
-            {{ settingsStore.settings.agenda_title || 'Agenda Permusyawaratan' }}
+            {{ settingsStore.settings.agenda_title || 'Agenda Acara' }}
           </h1>
           <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed pt-1">
-            {{ settingsStore.settings.agenda_subtitle || 'Rangkaian sidang dan acara Muktamar ke-35 pada 27–31 Agustus 2026 di Pondok Pesantren Bahrul Ulum Tambakberas, Jombang. Jadwal dapat berubah sewaktu-waktu.' }}
+            {{ settingsStore.settings.agenda_subtitle || 'Rangkaian acara Panitia Rojabiyyah & Haul Abah Ke-5 di Pondok Pesantren Bumi Damai Al-Muhibbin, Tambakberas, Jombang.' }}
           </p>
         </div>
       </div>

@@ -25,6 +25,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::get('/home', HomeController::class)->name('home');
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
     Route::get('/articles/{slug}', [ArticleController::class, 'show'])->name('articles.show');
+    Route::get('/og/artikel/{slug}', [ArticleController::class, 'ogMeta'])->name('articles.og');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/{id}', [AnnouncementController::class, 'show'])->name('announcements.show');
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -48,6 +49,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Admin CRUD Artikel & Berita
         Route::apiResource('admin/articles', AdminArticleController::class)->names('admin.articles');
+        Route::post('admin/upload-image', [AdminArticleController::class, 'uploadImage'])->name('admin.upload-image');
 
         // Admin CRUD Pengumuman & Agenda
         Route::apiResource('admin/announcements', AdminAnnouncementController::class)->names('admin.announcements');

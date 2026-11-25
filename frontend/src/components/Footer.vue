@@ -73,11 +73,11 @@ function handleNav(targetPath: string) {
 
           <!-- Deskripsi Singkat (Admin Controlled) -->
           <p class="text-xs text-slate-400 leading-relaxed max-w-sm font-normal">
-            {{ settingsStore.settings.footer_description || 'Portal resmi penyelenggaraan Muktamar ke-35 Nahdlatul Ulama (NU). Wadah permusyawaratan tertinggi para ulama nusantara dalam merawat tradisi keilmuan dan mengawal kemaslahatan bangsa.' }}
+            {{ settingsStore.settings.footer_description || 'Portal resmi Panitia Rojabiyyah & Haul Abah Ke-5 di Pondok Pesantren Bumi Damai Al-Muhibbin, Tambakberas, Jombang.' }}
           </p>
 
           <div class="text-[11px] text-slate-300 font-medium italic border-l-2 border-[#008f8a] pl-3 py-0.5">
-            {{ settingsStore.settings.footer_quote || '“Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa”' }}
+            {{ settingsStore.settings.footer_quote || '“Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Umat”' }}
           </div>
 
           <!-- Ikon Media Sosial Resmi (Admin Controlled URLs) -->

@@ -39,13 +39,13 @@ const historyParagraphs = computed<AboutParagraphItem[]>(() => {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 relative z-10 w-full">
         <div class="max-w-2xl space-y-3 sm:space-y-4">
           <span class="inline-block text-[11px] font-bold tracking-[0.2em] uppercase text-[#008f8a]">
-            {{ settingsStore.settings.about_tag || 'TENTANG MUKTAMAR' }}
+            {{ settingsStore.settings.about_tag || 'TENTANG ACARA' }}
           </span>
           <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 leading-tight">
-            {{ settingsStore.settings.about_title || 'Permusyawaratan akbar para ulama Nusantara' }}
+            {{ settingsStore.settings.about_title || 'Panitia Rojabiyyah & Haul Abah Ke-5' }}
           </h1>
           <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed pt-1">
-            {{ settingsStore.settings.about_subtitle || 'Muktamar adalah forum tertinggi dalam Nahdlatul Ulama. Muktamar ke-35 digelar pada 27–31 Agustus 2026 di Jombang, Jawa Timur.' }}
+            {{ settingsStore.settings.about_subtitle || 'Pondok Pesantren Bumi Damai Al-Muhibbin, Tambakberas, Jombang.' }}
           </p>
         </div>
       </div>
@@ -60,10 +60,10 @@ const historyParagraphs = computed<AboutParagraphItem[]>(() => {
         <!-- Kolom Kiri: Overline & Judul Besar Samping -->
         <div class="lg:col-span-5 space-y-2">
           <span class="text-[11px] font-bold tracking-[0.2em] uppercase text-slate-400 block">
-            {{ settingsStore.settings.about_section_label || 'APA ITU MUKTAMAR' }}
+            {{ settingsStore.settings.about_section_label || 'TENTANG KEGIATAN' }}
           </span>
           <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900 leading-tight">
-            {{ settingsStore.settings.about_section_title || 'Permusyawaratan tertinggi organisasi NU' }}
+            {{ settingsStore.settings.about_section_title || 'Panitia Rojabiyyah & Haul Abah Ke-5' }}
           </h2>
         </div>
 

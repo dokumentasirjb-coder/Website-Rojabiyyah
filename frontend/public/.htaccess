@@ -2,12 +2,24 @@
   RewriteEngine On
   RewriteBase /
 
-  # Jangan rewrite request yang mengarah ke API Laravel atau file/folder fisik
-  RewriteRule ^api(/|$) - [L]
+  # Redirect www ke non-www dan HTTP ke HTTPS
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://panitiarojabiyyah.id%{REQUEST_URI} [R=301,L]
+
+  # Arahkan bot media sosial/WhatsApp pada link detail berita ke endpoint Open Graph Laravel
+  RewriteCond %{HTTP_USER_AGENT} (WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|LinkedInBot|Discordbot|Slackbot|Pinterest) [NC]
+  RewriteRule ^artikel/([^/]+)/?$ /api/v1/og/artikel/$1 [R=302,L,QSA]
+
+  # Teruskan request API & Sanctum ke api-handler.php
+  RewriteRule ^(api(?:/.*)?|sanctum/csrf-cookie)$ api-handler.php [L]
+
+  # Jangan rewrite request yang mengarah ke storage atau file/folder fisik
+  RewriteRule ^storage(/|$) - [L]
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Semua rute Vue Router (mis. /berita, /informasi, /panel-panitia, /admin/content) diarahkan ke index.html
+  # Semua rute Vue Router (mis. /berita, /artikel/..., /informasi, /panel-panitia) diarahkan ke index.html
   RewriteRule ^ index.html [L]
 </IfModule>

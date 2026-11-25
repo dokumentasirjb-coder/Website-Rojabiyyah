@@ -1,212 +1,25 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api, { isApiOffline } from '@/lib/axios'
-import { idbGet, idbSet } from '@/lib/idb'
-import { broadcastSync, onSyncBroadcast } from '@/lib/syncChannel'
-import type { Article, Category, Announcement, HomeData, PaginationMeta } from '@/types'
+import api from '@/lib/axios'
+import type { Article, HomeData, PaginationMeta } from '@/types'
 
-export const DEFAULT_ARTICLES: Article[] = [
-  {
-    id: 101,
-    title: 'Profil Ketua Umum PBNU KH Abdul Hakim Mahfudz: Meneruskan Warisan Ulama Besar',
-    slug: 'profil-ketua-umum-pbnu-kh-abdul-hakim-mahfudz',
-    excerpt: 'Usai menyelesaikan pendidikan menengah, Gus Kikin memilih jalur pendidikan yang cukup unik bagi seorang putra kiai pesantren terkemuka.',
-    content: '<p>Usai menyelesaikan pendidikan menengah, Gus Kikin memilih jalur pendidikan yang cukup unik bagi seorang putra kiai pesantren terkemuka. Beliau memadukan integritas pesantren dengan kepemimpinan modern.</p>',
-    cover_image: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
-    cover_image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
-    is_featured: true,
-    status: 'published',
-    view_count: 1420,
-    reading_time_minutes: 4,
-    created_at: '2026-08-31',
-    created_at_formatted: '31 Agustus 2026',
-    published_at_human: 'Hari ini',
-    category: { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-    author: { id: 1, name: 'Tim Redaksi Muktamar', role: 'Jurnalis', avatar: null, bio: null },
-    published_at: '2026-08-31',
-    published_at_formatted: '31 Agustus 2026',
-    reading_time: '4 menit baca'
-  },
-  {
-    id: 102,
-    title: 'KH Abdul Hakim Mahfudz Resmi Terpilih Jadi Ketua Umum PBNU',
-    slug: 'kh-abdul-hakim-mahfudz-resmi-terpilih-jadi-ketua-umum-pbnu',
-    excerpt: 'KH. Abdul Hakim Mahfudz berhasil memuncaki tabulasi dengan 472 suara usulan, jauh meninggalkan kandidat lainnya dalam sidang pleno pemilihan.',
-    content: '<p>KH. Abdul Hakim Mahfudz berhasil memuncaki tabulasi dengan 472 suara usulan, jauh meninggalkan kandidat lainnya dalam sidang pleno pemilihan yang berlangsung khidmat di arena utama.</p>',
-    cover_image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
-    cover_image_url: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
-    is_featured: true,
-    status: 'published',
-    view_count: 3200,
-    reading_time_minutes: 3,
-    created_at: '2026-08-31',
-    created_at_formatted: '31 Agustus 2026',
-    published_at_human: 'Hari ini',
-    category: { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-    author: { id: 1, name: 'Tim Redaksi Muktamar', role: 'Jurnalis', avatar: null, bio: null },
-    published_at: '2026-08-31',
-    published_at_formatted: '31 Agustus 2026',
-    reading_time: '3 menit baca'
-  },
-  {
-    id: 103,
-    title: 'Mengenal KH Miftachul Akhyar, Rais Aam PBNU Terpilih di Muktamar ke-35 NU',
-    slug: 'mengenal-kh-miftachul-akhyar-rais-aam-pbnu-terpilih',
-    excerpt: 'KH Miftachul Akhyar bukan hanya sebagai figur struktural dalam tubuh NU. Pada sisi yang lain, beliau adalah pengasuh pesantren yang tekun membina santri.',
-    content: '<p>KH Miftachul Akhyar bukan hanya sebagai figur struktural dalam tubuh NU. Pada sisi yang lain, beliau adalah pengasuh pesantren yang tekun membina santri dan menjaga keilmuan salaf.</p>',
-    cover_image: 'https://images.unsplash.com/photo-1590076215667-875d4ef2d7ee?auto=format&fit=crop&w=800&q=80',
-    cover_image_url: 'https://images.unsplash.com/photo-1590076215667-875d4ef2d7ee?auto=format&fit=crop&w=800&q=80',
-    is_featured: false,
-    status: 'published',
-    view_count: 1850,
-    reading_time_minutes: 5,
-    created_at: '2026-08-31',
-    created_at_formatted: '31 Agustus 2026',
-    published_at_human: 'Hari ini',
-    category: { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-    author: { id: 1, name: 'Tim Redaksi Muktamar', role: 'Jurnalis', avatar: null, bio: null },
-    published_at: '2026-08-31',
-    published_at_formatted: '31 Agustus 2026',
-    reading_time: '5 menit baca'
-  },
-  {
-    id: 104,
-    title: 'KH Miftachul Akhyar Kembali Terpilih sebagai Rais Aam PBNU 2026–2031',
-    slug: 'kh-miftachul-akhyar-kembali-terpilih-sebagai-rais-aam',
-    excerpt: 'Pemilihan Rais Aam Pengurus Besar Nahdlatul Ulama (PBNU) periode 2026–2031 berlangsung melalui musyawarah mufakat 9 kiai sepuh AHWA.',
-    content: '<p>Pemilihan Rais Aam Pengurus Besar Nahdlatul Ulama (PBNU) periode 2026–2031 berlangsung melalui musyawarah mufakat 9 kiai sepuh AHWA yang berlangsung penuh keteduhan.</p>',
-    cover_image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    cover_image_url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    is_featured: false,
-    status: 'published',
-    view_count: 2100,
-    reading_time_minutes: 4,
-    created_at: '2026-08-31',
-    created_at_formatted: '31 Agustus 2026',
-    published_at_human: 'Hari ini',
-    category: { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-    author: { id: 1, name: 'Tim Redaksi Muktamar', role: 'Jurnalis', avatar: null, bio: null },
-    published_at: '2026-08-31',
-    published_at_formatted: '31 Agustus 2026',
-    reading_time: '4 menit baca'
-  },
-  {
-    id: 105,
-    title: 'Demisioner dari PBNU, Gus Yahya: Alhamdulillah Akhiri Khidmat dengan Kelegaan',
-    slug: 'demisioner-dari-pbnu-gus-yahya-akhiri-khidmat',
-    excerpt: 'Dalam pidatonya, Ketua Umum PBNU KH Yahya Cholil Staquf atau Gus Yahya bersyukur dapat menyelesaikan amanah kepengurusan lima tahun penuh dinamika.',
-    content: '<p>Dalam pidatonya, Ketua Umum PBNU KH Yahya Cholil Staquf atau Gus Yahya bersyukur dapat menyelesaikan amanah kepengurusan lima tahun penuh dinamika dengan capaian kelembagaan yang kokoh.</p>',
-    cover_image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80',
-    cover_image_url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80',
-    is_featured: false,
-    status: 'published',
-    view_count: 1670,
-    reading_time_minutes: 3,
-    created_at: '2026-08-31',
-    created_at_formatted: '31 Agustus 2026',
-    published_at_human: 'Hari ini',
-    category: { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-    author: { id: 1, name: 'Tim Redaksi Muktamar', role: 'Jurnalis', avatar: null, bio: null },
-    published_at: '2026-08-31',
-    published_at_formatted: '31 Agustus 2026',
-    reading_time: '3 menit baca'
-  },
-  {
-    id: 106,
-    title: '9 Kiai Khos AHWA Putuskan Rais Aam PBNU di Ndalem KH Wahab Hasbullah',
-    slug: '9-kiai-khos-ahwa-putuskan-rais-aam-pbnu',
-    excerpt: 'Sembilan kiai khos anggota AHWA hasil Muktamar ke-35 Nahdlatul Ulama tengah bermusyawarah mufakat menentukan Rais Aam.',
-    content: '<p>Sembilan kiai khos anggota AHWA hasil Muktamar ke-35 Nahdlatul Ulama tengah bermusyawarah mufakat menentukan Rais Aam terpilih yang akan mengemban amanah keulamaan.</p>',
-    cover_image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    cover_image_url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    is_featured: false,
-    status: 'published',
-    view_count: 2400,
-    reading_time_minutes: 4,
-    created_at: '2026-08-30',
-    created_at_formatted: '30 Agustus 2026',
-    published_at_human: 'Kemarin',
-    category: { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-    author: { id: 1, name: 'Tim Redaksi Muktamar', role: 'Jurnalis', avatar: null, bio: null },
-    published_at: '2026-08-30',
-    published_at_formatted: '30 Agustus 2026',
-    reading_time: '4 menit baca'
-  }
-]
-
-const STORAGE_KEY = 'muktamar_news_articles_v3'
-const SEEDED_KEY = 'muktamar_news_seeded_v3'
-const DELETED_IDS_KEY = 'muktamar_news_deleted_ids_v1'
-
-function getDeletedIds(): Set<string> {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const raw = localStorage.getItem(DELETED_IDS_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    return new Set(Array.isArray(parsed) ? parsed.map(String) : [])
-  } catch {
-    return new Set()
-  }
-}
-
-function addDeletedId(id: string | number) {
-  if (typeof window === 'undefined') return
-  try {
-    const set = getDeletedIds()
-    set.add(String(id))
-    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(set)))
-  } catch {}
-}
-
-// Fungsi pembersih duplikat: pastikan tidak ada 2 artikel dengan ID atau Judul/Slug yang sama
-function deduplicateArticles(list: Article[]): Article[] {
-  if (!Array.isArray(list)) return []
-  const seenIds = new Set<string>()
-  const seenTitles = new Set<string>()
-  const result: Article[] = []
-
-  for (const art of list) {
-    if (!art) continue
-    const idKey = String(art.id)
-    const titleKey = (art.slug || art.title || '').trim().toLowerCase()
-
-    if (!seenIds.has(idKey) && (!titleKey || !seenTitles.has(titleKey))) {
-      seenIds.add(idKey)
-      if (titleKey) seenTitles.add(titleKey)
-      result.push(art)
+function inlineMediaMapIntoContent(content: string, mediaMap?: Record<string, string>): string {
+  if (!content || !mediaMap) return content
+  let result = content
+  for (const [key, dataUrl] of Object.entries(mediaMap)) {
+    if (key && dataUrl) {
+      result = result.split(`](${key})`).join(`](${dataUrl})`)
     }
   }
   return result
 }
 
 export const useNewsStore = defineStore('news', () => {
-  const isSeeded = typeof window !== 'undefined' && localStorage.getItem(SEEDED_KEY) === 'true'
-  const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
-
-  let initialArticles: Article[] = []
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        initialArticles = deduplicateArticles(parsed)
-      } else {
-        initialArticles = DEFAULT_ARTICLES
-      }
-    } catch {
-      initialArticles = DEFAULT_ARTICLES
-    }
-  } else {
-    initialArticles = DEFAULT_ARTICLES
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(SEEDED_KEY, 'true')
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ARTICLES))
-      } catch {
-        // ignore
-      }
-    }
-  }
-
+  const articles = ref<Article[]>([])
+  const currentArticle = ref<Article | null>(null)
+  const selectedArticle = ref<Article | null>(null)
+  const relatedArticles = ref<Article[]>([])
+  const isModalOpen = ref(false)
   const homeData = ref<HomeData>({
     hero: null,
     highlights: [],
@@ -215,17 +28,12 @@ export const useNewsStore = defineStore('news', () => {
     announcements: [],
   })
 
-  const articles = ref<Article[]>(initialArticles)
   const pagination = ref<PaginationMeta>({
     current_page: 1,
     last_page: 1,
-    per_page: 15,
-    total: initialArticles.length,
+    per_page: 50,
+    total: 0,
   })
-
-  const selectedArticle = ref<Article | null>(null)
-  const relatedArticles = ref<Article[]>([])
-  const isModalOpen = ref(false)
 
   const activeCategory = ref<string>('')
   const searchQuery = ref<string>('')
@@ -233,115 +41,10 @@ export const useNewsStore = defineStore('news', () => {
   const isLoadingHome = ref(false)
   const isLoadingArticles = ref(false)
   const isLoadingDetail = ref(false)
+  const isSaving = ref(false)
   const error = ref<string | null>(null)
 
-  // Sinkronisasi data berkualitas tinggi dari IndexedDB saat startup (mengatasi batas kuota 5MB LocalStorage)
-  // IndexedDB adalah sumber utama: tidak ada batas kuota, menyimpan full base64 mediaMap dan cover_image
-  const initPromise: Promise<void> = typeof window !== 'undefined'
-    ? idbGet<Article[]>(STORAGE_KEY).then((idbData) => {
-        if (Array.isArray(idbData) && idbData.length > 0) {
-          // IndexedDB berhasil: gunakan datanya (lebih lengkap dari localStorage)
-          articles.value = deduplicateArticles(idbData)
-          pagination.value.total = articles.value.length
-        }
-      }).catch(() => {})
-    : Promise.resolve()
-
-  if (typeof window !== 'undefined') {
-
-    // Dengarkan perubahan antar tab browser agar halaman publik otomatis update saat admin menghapus/menambah artikel
-    window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue)
-          if (Array.isArray(parsed)) {
-            articles.value = deduplicateArticles(parsed)
-            pagination.value.total = articles.value.length
-          }
-        } catch {}
-      }
-    })
-
-    window.addEventListener('news-store-updated', () => {
-      // Reload dari IndexedDB (sumber paling otoritatif) karena event ini dipicu setelah persist()
-      reloadFromStorage()
-    })
-
-    onSyncBroadcast('news', () => {
-      reloadFromStorage()
-    })
-  }
-
-  async function reloadFromStorage() {
-    if (typeof window === 'undefined') return
-    try {
-      // Prioritaskan IndexedDB (tidak ada batas kuota, menyimpan penuh termasuk mediaMap + base64)
-      const idbData = await idbGet<Article[]>(STORAGE_KEY)
-      if (Array.isArray(idbData) && idbData.length > 0) {
-        articles.value = deduplicateArticles(idbData)
-        pagination.value.total = articles.value.length
-        return
-      }
-    } catch {}
-    // Fallback ke localStorage jika IndexedDB kosong atau gagal
-    try {
-      const lsSaved = localStorage.getItem(STORAGE_KEY)
-      if (lsSaved) {
-        const parsed = JSON.parse(lsSaved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          articles.value = deduplicateArticles(parsed)
-          pagination.value.total = articles.value.length
-        }
-      }
-    } catch {}
-  }
-
-  async function persist() {
-    articles.value = deduplicateArticles(articles.value)
-    pagination.value.total = articles.value.length
-
-    if (typeof window !== 'undefined') {
-      // 1. UTAMA: Simpan salinan lengkap termasuk gambar dan mediaMap ke IndexedDB (tidak ada batas kuota)
-      // IndexedDB adalah ground truth - tidak pernah hapus mediaMap atau pangkas content
-      try {
-        await idbSet(STORAGE_KEY, JSON.parse(JSON.stringify(articles.value)))
-      } catch {}
-
-      // 2. Simpan ke LocalStorage untuk akses sinkron cepat (best effort saja)
-      try {
-        localStorage.setItem(SEEDED_KEY, 'true')
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(articles.value))
-      } catch {
-        // LocalStorage penuh (QuotaExceededError) - tidak masalah, IndexedDB sudah menyimpan lengkap
-        // Simpan versi minimal tanpa base64 agar hanya judul/slug/status tersimpan di localStorage
-        try {
-          const minimal = articles.value.map(a => ({
-            ...a,
-            // Pertahankan cover_image jika berupa URL (bukan base64), hapus jika base64 besar
-            cover_image: a.cover_image?.startsWith('data:') ? '' : (a.cover_image || ''),
-            cover_image_url: a.cover_image_url?.startsWith('data:') ? '' : (a.cover_image_url || ''),
-            // JANGAN hapus mediaMap atau truncate content - IndexedDB sudah simpan lengkap
-            content: a.content?.length > 2000
-              ? a.content.substring(0, 2000) + '...'
-              : (a.content || ''),
-            mediaMap: {} // localStorage versi minimal tidak perlu mediaMap
-          }))
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal))
-        } catch {
-          // Jika masih gagal, biarkan - IndexedDB sudah cukup
-        }
-      }
-
-      // 3. Kabarkan ke seluruh tab / halaman bahwa daftar berita telah berubah
-      try {
-        window.dispatchEvent(new CustomEvent('news-store-updated'))
-      broadcastSync('news')
-      } catch {}
-    }
-  }
-
   async function fetchHome() {
-    if (isApiOffline()) return
     isLoadingHome.value = true
     error.value = null
     try {
@@ -358,320 +61,208 @@ export const useNewsStore = defineStore('news', () => {
 
   let inFlightArticlesFetch: Promise<void> | null = null
 
-  async function fetchArticles(page = 1, category = activeCategory.value, search = searchQuery.value) {
-    await initPromise
-    if (isApiOffline()) {
-      await reloadFromStorage()
-      return
-    }
-    if (inFlightArticlesFetch) {
-      return inFlightArticlesFetch
-    }
+  async function fetchArticles(page = 1, category = activeCategory.value, search = searchQuery.value, force = false) {
+    if (inFlightArticlesFetch && !force) return inFlightArticlesFetch
+
     inFlightArticlesFetch = (async () => {
       isLoadingArticles.value = true
       error.value = null
       try {
-      const params: Record<string, string | number> = { page, per_page: 15 }
-      if (category) params.category = category
-      if (search && search.trim()) params.search = search.trim()
+        const hasAdminToken = typeof window !== 'undefined' && !!localStorage.getItem('admin_token')
+        const endpoint = hasAdminToken ? '/admin/articles' : '/articles'
+        const params: Record<string, string | number> = { page, per_page: 50 }
+        if (category) params.category = category
+        if (search && search.trim()) params.search = search.trim()
 
-      const response = await api.get<{ data: Article[]; meta?: PaginationMeta }>('/articles', { params })
-      if (response.data?.data && response.data.data.length > 0) {
-        const deletedIds = getDeletedIds()
-        // Gabungkan artikel dari server dengan artikel lokal yang dibuat/diedit pengguna
-        const localMap = new Map(articles.value.map(a => [String(a.id), a]))
-        const localSlugMap = new Map(articles.value.map(a => [a.slug, a]))
-
-        const mergedServerArticles = response.data.data
-          .filter(serverArt => !deletedIds.has(String(serverArt.id)))
-          .map(serverArt => {
-            const localArt = localMap.get(String(serverArt.id)) || localSlugMap.get(serverArt.slug)
-            if (localArt) {
-              // Jika artikel sudah pernah diedit secara lokal, pertahankan seluruh hasil edit lokal
-              if ((localArt as any).isLocallyModified) {
-                return localArt
-              }
-              const hasLocalCover = localArt.cover_image &&
-                (localArt.cover_image.startsWith('data:') || !localArt.cover_image.includes('1585829365295'))
-              const serverHasTypewriter = !serverArt.cover_image || serverArt.cover_image.includes('1585829365295')
-
-              return {
-                ...serverArt,
-                cover_image: (hasLocalCover && serverHasTypewriter) ? localArt.cover_image : (serverArt.cover_image || localArt.cover_image),
-                cover_image_url: (hasLocalCover && serverHasTypewriter) ? (localArt.cover_image_url || localArt.cover_image) : (serverArt.cover_image_url || serverArt.cover_image || localArt.cover_image),
-                mediaMap: { ...(localArt.mediaMap || {}), ...(serverArt.mediaMap || {}) }
-              }
-            }
-            return serverArt
-          })
-
-        const remoteIds = new Set(response.data.data.map(a => String(a.id)))
-        const localOnly = articles.value.filter(a => !remoteIds.has(String(a.id)) && !deletedIds.has(String(a.id)))
-        articles.value = deduplicateArticles([...localOnly, ...mergedServerArticles])
-        await persist()
+        const response = await api.get<{ data: Article[]; meta?: PaginationMeta }>(endpoint, { params })
+        const list = Array.isArray(response.data?.data) ? response.data.data : []
+        articles.value = list
+        pagination.value = response.data?.meta || {
+          current_page: page,
+          last_page: 1,
+          per_page: 50,
+          total: list.length,
+        }
+      } catch (err: any) {
+        error.value = err.response?.data?.message || 'Gagal memuat daftar berita dari server.'
+      } finally {
+        isLoadingArticles.value = false
+        inFlightArticlesFetch = null
       }
-    } catch (err: any) {
-      // Offline fallback: muat ulang dari IndexedDB (sumber paling lengkap dengan mediaMap penuh)
-      await reloadFromStorage()
-    } finally {
-      isLoadingArticles.value = false
-      inFlightArticlesFetch = null
-    }
     })()
+
     return inFlightArticlesFetch
   }
 
   async function fetchArticleBySlug(slug: string) {
-    await initPromise
     isLoadingDetail.value = true
     error.value = null
     try {
-      const response = await api.get<{
-        success: boolean
-        data: { article: Article; related_articles: Article[] }
-      }>(`/articles/${slug}`)
+      const response = await api.get<{ success: boolean; data: any }>(`/articles/${slug}`)
+      const article: Article | null = response.data?.data?.article ?? response.data?.data ?? response.data ?? null
+      currentArticle.value = article
+      selectedArticle.value = article
 
-      if (response.data?.data) {
-        const localFound = articles.value.find(a => a.slug === slug)
-        if (localFound && (localFound as any).isLocallyModified) {
-          selectedArticle.value = localFound
+      const related = response.data?.data?.related_articles
+      if (Array.isArray(related)) {
+        relatedArticles.value = related
+      }
+
+      if (article && article.id) {
+        const idx = articles.value.findIndex(a => a.id === article.id || a.slug === article.slug)
+        if (idx >= 0) {
+          articles.value[idx] = article
         } else {
-          selectedArticle.value = response.data.data.article
+          articles.value.unshift(article)
         }
-        relatedArticles.value = response.data.data.related_articles || []
-        isModalOpen.value = true
       }
     } catch (err: any) {
-      // Local fallback: cari dari store yang sudah dimuat dari IndexedDB (termasuk mediaMap)
-      let found = articles.value.find(a => a.slug === slug)
-      // Jika artikel tidak ada di memori, coba muat dari IndexedDB
-      if (!found) {
-        try {
-          const idbData = await idbGet<Article[]>(STORAGE_KEY)
-          if (Array.isArray(idbData)) {
-            found = idbData.find(a => a.slug === slug)
-            if (found) {
-              // Perbarui store dengan data terlengkap dari IndexedDB
-              articles.value = deduplicateArticles(idbData)
-              pagination.value.total = articles.value.length
-            }
-          }
-        } catch {}
-      }
-      if (found) {
-        selectedArticle.value = found
-        relatedArticles.value = articles.value.filter(a => a.slug !== slug).slice(0, 3)
-      }
+      currentArticle.value = null
+      selectedArticle.value = null
+      error.value = err.response?.data?.message || 'Artikel tidak ditemukan.'
     } finally {
       isLoadingDetail.value = false
     }
   }
 
-  async function saveArticle(articleData: Partial<Article>) {
-    await initPromise
-    let savedArticle: Article | null = null
-
-    // Pastikan foto sampul yang diunggah pengguna disimpan seutuhnya (tidak diganti foto mesin tik default)
-    const cover = (articleData.cover_image && articleData.cover_image.trim())
-      ? articleData.cover_image.trim()
-      : ((articleData.cover_image_url && articleData.cover_image_url.trim()) ? articleData.cover_image_url.trim() : 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80')
-
-    if (articleData.id) {
-      // Update existing
-      const idx = articles.value.findIndex(a => String(a.id) === String(articleData.id))
-      if (idx !== -1) {
-        articles.value[idx] = {
-          ...articles.value[idx],
-          ...articleData,
-          cover_image: cover,
-          cover_image_url: cover,
-          category: articleData.category || articles.value[idx].category,
-          author: articleData.author || articles.value[idx].author,
-          tags: articleData.tags !== undefined ? articleData.tags : articles.value[idx].tags,
-          metaTitle: articleData.metaTitle !== undefined ? articleData.metaTitle : articles.value[idx].metaTitle,
-          metaDescription: articleData.metaDescription !== undefined ? articleData.metaDescription : articles.value[idx].metaDescription,
-          mediaMap: articleData.mediaMap !== undefined ? articleData.mediaMap : (articles.value[idx].mediaMap || {}),
-          isLocallyModified: true
-        } as Article & { isLocallyModified?: boolean }
-        savedArticle = articles.value[idx]
-      }
-    } else {
-      // Create new article
-      const newId = Date.now()
-      const newSlug = articleData.slug || articleData.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || `berita-${newId}`
-
-      // Cegah duplikat: jika sudah ada artikel dengan judul atau slug yang sama persis, perbarui saja!
-      const existingIdx = articles.value.findIndex(a => 
-        (a.slug && a.slug === newSlug) || 
-        (a.title && articleData.title && a.title.trim().toLowerCase() === articleData.title.trim().toLowerCase())
-      )
-      if (existingIdx !== -1) {
-        articles.value[existingIdx] = {
-          ...articles.value[existingIdx],
-          ...articleData,
-          cover_image: cover,
-          cover_image_url: cover,
-          slug: newSlug,
-          category: articleData.category || articles.value[existingIdx].category,
-          author: articleData.author || articles.value[existingIdx].author,
-          mediaMap: articleData.mediaMap || articles.value[existingIdx].mediaMap || {},
-          isLocallyModified: true
-        } as Article & { isLocallyModified?: boolean }
-        savedArticle = articles.value[existingIdx]
-        await persist()
-        return true
-      }
-
-      savedArticle = {
-        id: newId,
-        title: articleData.title || 'Judul Berita',
-        slug: newSlug,
-        excerpt: articleData.excerpt || '',
-        content: articleData.content || '',
-        mediaMap: articleData.mediaMap || {},
-        cover_image: cover,
-        cover_image_url: cover,
-        is_featured: !!articleData.is_featured,
-        status: (articleData.status as any) || 'published',
-        view_count: 0,
-        reading_time_minutes: Math.max(1, Math.ceil((articleData.content?.length || 500) / 500)),
-        created_at: new Date().toISOString(),
-        created_at_formatted: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        published_at_human: 'Baru saja',
-        category: articleData.category || { id: 1, name: 'LIPUTAN', slug: 'liputan', description: null, color: '#008f8a', icon: null, sort_order: 1, is_active: true },
-        author: articleData.author || { id: 1, name: 'Admin Redaksi', role: 'Redaktur', avatar: null, bio: null },
-        tags: articleData.tags || '',
-        metaTitle: articleData.metaTitle || '',
-        metaDescription: articleData.metaDescription || '',
-        published_at: new Date().toISOString(),
-        published_at_formatted: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        reading_time: `${Math.max(1, Math.ceil((articleData.content?.length || 500) / 500))} menit baca`,
-        isLocallyModified: true
-      } as Article & { isLocallyModified?: boolean }
-      articles.value.unshift(savedArticle)
-    }
-
-    await persist()
-
-    // Upaya sinkronisasi ke backend API (jika server Laravel aktif)
+  async function saveArticle(
+    articleData: Partial<Article> & { title: string; id?: number; category_id?: number }
+  ): Promise<{ success: boolean; message?: string }> {
+    isSaving.value = true
+    error.value = null
     try {
+      const resolvedContent = inlineMediaMapIntoContent(articleData.content || '', articleData.mediaMap)
       const payload = {
-        title: articleData.title,
-        content: articleData.content,
-        excerpt: articleData.excerpt,
+        title: articleData.title.trim(),
+        category_id: articleData.category_id || articleData.category?.id || 1,
+        content: resolvedContent,
+        excerpt: articleData.excerpt || '',
         status: articleData.status || 'published',
-        is_featured: articleData.is_featured ? 1 : 0,
-        category_id: articleData.category?.id || 1,
-        slug: articleData.slug,
-        cover_image: cover
+        is_featured: Boolean(articleData.is_featured),
+        cover_image: articleData.cover_image || articleData.cover_image_url || '',
       }
-      if (articleData.id && typeof articleData.id === 'number' && articleData.id < 1000000000) {
-        await api.put(`/admin/articles/${articleData.id}`, payload, { skipAuthRedirect: true } as any)
+
+      if (articleData.id) {
+        await api.put(`/admin/articles/${articleData.id}`, payload)
       } else {
-        const res = await api.post('/admin/articles', payload, { skipAuthRedirect: true } as any)
-        if (res.data?.data?.id && savedArticle) {
-          savedArticle.id = res.data.data.id
-          await persist()
-        }
+        await api.post('/admin/articles', payload)
       }
-    } catch {
-      // Offline fallback: tetap sukses tersimpan di memori & localStorage & IndexedDB
-    }
 
-    return true
+      await fetchArticles(1, activeCategory.value, searchQuery.value, true)
+      return {
+        success: true,
+        message: payload.status === 'published' ? 'Berita berhasil diterbitkan ke database!' : 'Draf berita berhasil disimpan!',
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Gagal menyimpan berita ke server database.'
+      error.value = msg
+      return { success: false, message: msg }
+    } finally {
+      isSaving.value = false
+    }
   }
 
-  function incrementViewCount(slug: string) {
-    const art = articles.value.find(a => a.slug === slug)
-    if (art) {
-      art.view_count = (art.view_count || 0) + 1
-      persist()
-    }
-  }
-
-  async function deleteArticle(id: number | string) {
-    await initPromise
-    const targetId = String(id)
-    addDeletedId(targetId)
-    articles.value = articles.value.filter(a => String(a.id) !== targetId)
-    await persist()
-
-    // Upaya sinkronisasi hapus ke backend Laravel jika aktif
+  async function deleteArticle(id: number): Promise<{ success: boolean; message?: string }> {
     try {
-      if (typeof id === 'number' && id < 1000000000) {
-        await api.delete(`/admin/articles/${id}`, { skipAuthRedirect: true } as any)
-      }
-    } catch {
-      // Offline fallback
-    }
-
-    return true
-  }
-
-  async function toggleArticleStatus(id: number | string) {
-    await initPromise
-    const targetId = String(id)
-    const art = articles.value.find(a => String(a.id) === targetId)
-    if (art) {
-      art.status = art.status === 'published' ? 'draft' : 'published'
-      ;(art as any).isLocallyModified = true
-      await persist()
+      await api.delete(`/admin/articles/${id}`)
+      await fetchArticles(1, activeCategory.value, searchQuery.value, true)
+      return { success: true, message: 'Berita berhasil dihapus dari database!' }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Gagal menghapus berita di server.'
+      error.value = msg
+      return { success: false, message: msg }
     }
   }
 
-  function openArticle(article: Article) {
-    selectedArticle.value = article
-    relatedArticles.value = []
+  async function toggleArticleStatus(articleOrId: Article | number): Promise<{ success: boolean; message?: string }> {
+    const target = typeof articleOrId === 'number'
+      ? articles.value.find(a => a.id === articleOrId)
+      : articleOrId
+    if (!target) return { success: false, message: 'Artikel tidak ditemukan.' }
+    const newStatus = target.status === 'published' ? 'draft' : 'published'
+    try {
+      await api.put(`/admin/articles/${target.id}`, { status: newStatus })
+      await fetchArticles(1, activeCategory.value, searchQuery.value, true)
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Gagal mengubah status berita.' }
+    }
+  }
+
+  async function openArticle(slugOrArticle: string | Article) {
+    if (typeof slugOrArticle === 'string') {
+      await fetchArticleBySlug(slugOrArticle)
+      selectedArticle.value = currentArticle.value
+    } else {
+      selectedArticle.value = slugOrArticle
+      currentArticle.value = slugOrArticle
+    }
+    relatedArticles.value = articles.value
+      .filter(a => a.id !== selectedArticle.value?.id && a.status === 'published')
+      .slice(0, 3)
     isModalOpen.value = true
-    fetchArticleBySlug(article.slug)
   }
 
   function closeArticleModal() {
     isModalOpen.value = false
-    selectedArticle.value = null
-    relatedArticles.value = []
+  }
+
+  function incrementViewCount(slugOrId: string | number) {
+    const found = articles.value.find(a => a.id === slugOrId || a.slug === slugOrId)
+    if (found) found.view_count = (found.view_count || 0) + 1
+    if (currentArticle.value && (currentArticle.value.id === slugOrId || currentArticle.value.slug === slugOrId)) {
+      currentArticle.value.view_count = (currentArticle.value.view_count || 0) + 1
+    }
+  }
+
+  async function clearAllArticles(): Promise<{ success: boolean; message?: string }> {
+    try {
+      for (const art of articles.value) {
+        await api.delete(`/admin/articles/${art.id}`)
+      }
+      await fetchArticles(1, activeCategory.value, searchQuery.value, true)
+      return { success: true, message: 'Seluruh berita berhasil dihapus dari database!' }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Gagal mengosongkan berita.' }
+    }
   }
 
   function setCategory(slug: string) {
     activeCategory.value = slug
-    fetchArticles(1, slug, searchQuery.value)
+    fetchArticles(1, slug, searchQuery.value, true)
   }
 
   function setSearch(query: string) {
     searchQuery.value = query
-    fetchArticles(1, activeCategory.value, query)
-  }
-
-  function clearAllArticles() {
-    articles.value = []
-    persist()
+    fetchArticles(1, activeCategory.value, query, true)
   }
 
   return {
-    homeData,
     articles,
-    pagination,
+    currentArticle,
     selectedArticle,
     relatedArticles,
     isModalOpen,
+    homeData,
+    pagination,
     activeCategory,
     searchQuery,
     isLoadingHome,
     isLoadingArticles,
     isLoadingDetail,
+    isSaving,
     error,
     fetchHome,
     fetchArticles,
     fetchArticleBySlug,
     saveArticle,
     deleteArticle,
-    clearAllArticles,
-    incrementViewCount,
     toggleArticleStatus,
+    clearAllArticles,
     openArticle,
     closeArticleModal,
+    incrementViewCount,
     setCategory,
     setSearch,
   }
 })
-

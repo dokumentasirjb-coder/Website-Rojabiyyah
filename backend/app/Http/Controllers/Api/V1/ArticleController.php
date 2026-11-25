@@ -53,4 +53,53 @@ class ArticleController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Sajikan HTML dengan meta tag Open Graph dinamis untuk crawler WhatsApp / media sosial.
+     */
+    public function ogMeta(string $slug)
+    {
+        $article = $this->articleService->getBySlug($slug);
+        $title = e($article->title . ' — Panitia Rojabiyyah & Haul Abah Ke-5');
+        $rawDesc = $article->excerpt ?: strip_tags((string) $article->content);
+        $description = e(\Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', $rawDesc)), 160));
+        $frontendUrl = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', url('/'))), '/');
+        $canonicalUrl = e($frontendUrl . '/artikel/' . $article->slug);
+
+        $cover = $article->cover_image_url ?: $article->cover_image ?: '';
+        if ($cover && !str_starts_with($cover, 'http://') && !str_starts_with($cover, 'https://')) {
+            $cleanCover = ltrim($cover, '/');
+            $cover = str_starts_with($cleanCover, 'storage/')
+                ? url($cleanCover)
+                : url('storage/' . $cleanCover);
+        }
+        $imageUrl = e($cover);
+
+        $html = <<<HTML
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>{$title}</title>
+  <meta name="description" content="{$description}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Panitia Rojabiyyah &amp; Haul Abah Ke-5" />
+  <meta property="og:title" content="{$title}" />
+  <meta property="og:description" content="{$description}" />
+  <meta property="og:url" content="{$canonicalUrl}" />
+  <meta property="og:image" content="{$imageUrl}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{$title}" />
+  <meta name="twitter:description" content="{$description}" />
+  <meta name="twitter:image" content="{$imageUrl}" />
+  <meta http-equiv="refresh" content="0;url={$canonicalUrl}" />
+</head>
+<body>
+  <script>window.location.replace("{$canonicalUrl}");</script>
+</body>
+</html>
+HTML;
+
+        return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+    }
 }

@@ -91,7 +91,14 @@ class Article extends Model
     public function getCoverImageUrlAttribute(): string
     {
         if ($this->cover_image) {
-            return asset('storage/' . $this->cover_image);
+            if (str_starts_with($this->cover_image, 'http://') || str_starts_with($this->cover_image, 'https://')) {
+                return $this->cover_image;
+            }
+            $cleanPath = ltrim($this->cover_image, '/');
+            if (str_starts_with($cleanPath, 'storage/')) {
+                return url($cleanPath);
+            }
+            return asset('storage/' . $cleanPath);
         }
 
         return 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80';

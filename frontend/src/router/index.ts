@@ -10,7 +10,7 @@ const routes: RouteRecordRaw[] = [
     name: 'home',
     component: HomeView,
     meta: {
-      title: 'Muktamar ke-35 Nahdlatul Ulama — Beranda',
+      title: 'Panitia Rojabiyyah & Haul Abah Ke-5 — Beranda',
     },
   },
   {
@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
     name: 'tentang',
     component: () => import('@/views/TentangView.vue'),
     meta: {
-      title: 'Tentang — Muktamar ke-35 Nahdlatul Ulama',
+      title: 'Tentang — Panitia Rojabiyyah & Haul Abah Ke-5',
     },
   },
   {
@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
     name: 'agenda',
     component: () => import('@/views/AgendaView.vue'),
     meta: {
-      title: 'Agenda — Muktamar ke-35 Nahdlatul Ulama',
+      title: 'Agenda — Panitia Rojabiyyah & Haul Abah Ke-5',
     },
   },
   {
@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
     name: 'berita',
     component: () => import('@/views/BeritaView.vue'),
     meta: {
-      title: 'Berita & Liputan — Muktamar ke-35 Nahdlatul Ulama',
+      title: 'Berita & Liputan — Panitia Rojabiyyah & Haul Abah Ke-5',
     },
   },
   {
@@ -42,7 +42,7 @@ const routes: RouteRecordRaw[] = [
     name: 'galeri',
     component: () => import('@/views/GaleriView.vue'),
     meta: {
-      title: 'Galeri — Muktamar ke-35 Nahdlatul Ulama',
+      title: 'Galeri — Panitia Rojabiyyah & Haul Abah Ke-5',
     },
   },
   {
@@ -50,7 +50,7 @@ const routes: RouteRecordRaw[] = [
     name: 'informasi',
     component: () => import('@/views/InformasiView.vue'),
     meta: {
-      title: 'Informasi Umum — Panitia Rojabiyyah',
+      title: 'Informasi Umum — Panitia Rojabiyyah & Haul Abah Ke-5',
     },
   },
   {
@@ -58,7 +58,7 @@ const routes: RouteRecordRaw[] = [
     name: 'article.detail',
     component: () => import('@/views/ArticleDetailView.vue'),
     meta: {
-      title: 'Detail Warta — Muktamar ke-35 Nahdlatul Ulama',
+      title: 'Detail Warta — Panitia Rojabiyyah & Haul Abah Ke-5',
     },
   },
 
@@ -83,7 +83,7 @@ const routes: RouteRecordRaw[] = [
     name: 'admin.content',
     component: () => import('@/views/AdminContentHubView.vue'),
     meta: {
-      title: 'Konten Situs — CMS Muktamar',
+      title: 'Konten Situs — Panel Panitia Rojabiyyah',
       requiresAuth: true,
     },
   },

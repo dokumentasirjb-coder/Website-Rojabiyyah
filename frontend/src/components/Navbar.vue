@@ -102,13 +102,13 @@ function navigateTo(targetPath: string) {
               class="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold leading-tight truncate transition-colors"
               :class="[isDarkNavbar ? 'text-white/80' : 'text-slate-500']"
             >
-              {{ settingsStore.settings.site_title || 'Muktamar Ke-35' }}
+              {{ settingsStore.settings.site_title || 'PANITIA ROJABIYYAH' }}
             </span>
             <span 
               class="font-bold text-sm sm:text-base lg:text-lg tracking-tight leading-tight transition-colors truncate"
               :class="[isDarkNavbar ? 'text-white' : 'text-slate-900 group-hover:text-[#008f8a]']"
             >
-              {{ settingsStore.settings.site_subtitle || 'Nahdlatul Ulama' }}
+              {{ settingsStore.settings.site_subtitle || 'Haul Abah Ke-5' }}
             </span>
           </div>
         </RouterLink>

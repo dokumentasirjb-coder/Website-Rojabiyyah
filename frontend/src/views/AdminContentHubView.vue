@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
+import api from '@/lib/axios'
 import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
-import { idbSet, idbGet } from '@/lib/idb'
 import { useSettingsStore, DEFAULT_SCHEDULE_DAYS, DEFAULT_GALLERY_ALBUMS, DEFAULT_ABOUT_STRUCTURE_ITEMS, DEFAULT_ABOUT_HISTORY_PARAGRAPHS } from '@/stores/settingsStore'
 import { useNewsStore } from '@/stores/newsStore'
 import { useTabarukanStore, type TabarukanItem, type SecretariatContact, type GuideInfoItem, type LocationPoint } from '@/stores/tabarukanStore'
@@ -768,15 +768,6 @@ function formatPreviewContent(raw: string): string {
     let actualSrc = src.trim()
     if (articleForm.mediaMap && articleForm.mediaMap[actualSrc]) {
       actualSrc = articleForm.mediaMap[actualSrc]
-    } else if (actualSrc.startsWith('foto_') || !actualSrc.includes('/')) {
-      if (typeof window !== 'undefined') {
-        try {
-          const cached = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
-          if (cached[actualSrc]) {
-            actualSrc = cached[actualSrc]
-          }
-        } catch {}
-      }
     }
     const cap = alt ? `<figcaption class="text-center text-[11px] text-slate-400 py-1.5 px-3 italic border-t border-[#143d30] bg-[#05130f]">📷 ${alt}</figcaption>` : ''
     return `<figure class="my-4 rounded-xl overflow-hidden border border-[#143d30] bg-[#071913] shadow-md"><img src="${actualSrc}" alt="${alt || 'Foto Berita'}" class="w-full object-cover max-h-[350px]" />${cap}</figure>`
@@ -920,7 +911,7 @@ async function handleSaveArticle(targetStatus?: 'published' | 'draft') {
     ? articleForm.cover_image.trim()
     : 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80'
 
-  await newsStore.saveArticle({
+  const res = await newsStore.saveArticle({
     id: articleForm.id,
     title: articleForm.title.trim(),
     slug: finalSlug,
@@ -952,25 +943,30 @@ async function handleSaveArticle(targetStatus?: 'published' | 'draft') {
     }
   })
 
-  isContentFullscreen.value = false
-  newsMode.value = 'list'
-  toastMessage.value = articleForm.status === 'published'
-    ? 'Berita berhasil diterbitkan ke publik!'
-    : 'Berita berhasil disimpan sebagai draf!'
-  showToast.value = true
-  setTimeout(() => { showToast.value = false }, 3500)
+  if (res.success) {
+    isContentFullscreen.value = false
+    newsMode.value = 'list'
+    toastMessage.value = res.message || (articleForm.status === 'published'
+      ? 'Berita berhasil diterbitkan ke database!'
+      : 'Berita berhasil disimpan sebagai draf!')
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3500)
+  } else {
+    uiStore.notify(res.message || 'Gagal menyimpan berita ke server.', 'error')
+  }
 }
 
 const isImageModalOpen = ref(false)
+const isUploadingInlineImage = ref(false)
 const imageModalForm = reactive({
   caption: 'Dokumentasi Acara',
-  base64: '',
+  imageUrl: '',
   previewUrl: '',
   fileName: '',
   fileSize: ''
 })
 
-function handleInsertArticleImage(e: Event) {
+async function handleInsertArticleImage(e: Event) {
   trackCursorPos()
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
@@ -989,97 +985,42 @@ function handleInsertArticleImage(e: Event) {
   }
 
   const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+  isUploadingInlineImage.value = true
 
-  const reader = new FileReader()
-  reader.onload = (loadEvent) => {
-    const rawResult = loadEvent.target?.result as string
-    if (!rawResult) return
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    const res = await api.post<{ success: boolean; url: string }>('/admin/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
 
-    const img = new Image()
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
-        const MAX_WIDTH = 1200
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width)
-          width = MAX_WIDTH
-        }
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height)
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85)
-
-          imageModalForm.base64 = compressedBase64
-          imageModalForm.previewUrl = compressedBase64
-          imageModalForm.caption = cleanName || 'Dokumentasi Acara'
-          imageModalForm.fileName = file.name
-          imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
-          isImageModalOpen.value = true
-          return
-        }
-      } catch (err) {
-        console.warn('Canvas compression fallback to raw:', err)
-      }
-
-      imageModalForm.base64 = rawResult
-      imageModalForm.previewUrl = rawResult
-      imageModalForm.caption = cleanName || 'Dokumentasi Acara'
-      imageModalForm.fileName = file.name
-      imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
-      isImageModalOpen.value = true
+    const uploadedUrl = res.data?.url
+    if (!uploadedUrl) {
+      throw new Error('URL gambar tidak dikembalikan oleh server.')
     }
 
-    img.onerror = () => {
-      imageModalForm.base64 = rawResult
-      imageModalForm.previewUrl = rawResult
-      imageModalForm.caption = cleanName || 'Dokumentasi Acara'
-      imageModalForm.fileName = file.name
-      imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
-      isImageModalOpen.value = true
-    }
-
-    img.src = rawResult
+    imageModalForm.imageUrl = uploadedUrl
+    imageModalForm.previewUrl = uploadedUrl
+    imageModalForm.caption = cleanName || 'Dokumentasi Acara'
+    imageModalForm.fileName = file.name
+    imageModalForm.fileSize = `${Math.round(file.size / 1024)} KB`
+    isImageModalOpen.value = true
+  } catch (err: any) {
+    uiStore.notify(err.response?.data?.message || 'Gagal mengunggah gambar ke server.', 'error')
+  } finally {
+    isUploadingInlineImage.value = false
+    target.value = ''
   }
-
-  reader.onerror = () => {
-    uiStore.notify('Gagal membaca file gambar dari komputer.', 'error')
-  }
-
-  reader.readAsDataURL(file)
-  target.value = ''
 }
 
 function applyImageModal() {
-  if (!imageModalForm.base64) {
+  if (!imageModalForm.imageUrl) {
     isImageModalOpen.value = false
     return
   }
 
-  if (!articleForm.mediaMap) articleForm.mediaMap = {}
-  let idx = 1
-  while (articleForm.mediaMap[`foto_${idx}`]) idx++
-  const photoKey = `foto_${idx}`
-  articleForm.mediaMap[photoKey] = imageModalForm.base64
-
-  // Simpan juga ke cache darurat agar foto_1 tetap bisa di-resolve jika mediaMap terlepas
-  if (typeof window !== 'undefined') {
-    try {
-      const existingCache = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
-      existingCache[photoKey] = imageModalForm.base64
-      localStorage.setItem('muktamar_last_inserted_media', JSON.stringify(existingCache))
-    } catch {}
-    try {
-      idbSet(`media_${photoKey}`, imageModalForm.base64)
-    } catch {}
-  }
-
-  const captionText = imageModalForm.caption.trim() || 'Dokumentasi Acara'
-  // Gunakan format singkat dan rapi: ![Caption](foto_1) agar naskah Markdown bersih dan mudah dibaca
-  const snippet = `\n\n![${captionText}](${photoKey})\n\n`
+  const captionText = (imageModalForm.caption || '').trim() || 'Dokumentasi Acara'
+  const snippet = `\n\n![${captionText}](${imageModalForm.imageUrl})\n\n`
 
   const val = articleForm.content || ''
   let start = savedCursorPos.value.start
@@ -1105,19 +1046,27 @@ function applyImageModal() {
 
 async function handleDeleteArticle(art: Article) {
   if (await uiStore.askConfirm(`Hapus artikel "${art.title}"?`)) {
-    await newsStore.deleteArticle(art.id)
-    toastMessage.value = 'Berita berhasil dihapus!'
-    showToast.value = true
-    setTimeout(() => { showToast.value = false }, 3000)
+    const res = await newsStore.deleteArticle(art.id)
+    if (res.success) {
+      toastMessage.value = res.message || 'Berita berhasil dihapus!'
+      showToast.value = true
+      setTimeout(() => { showToast.value = false }, 3000)
+    } else {
+      uiStore.notify(res.message || 'Gagal menghapus berita di server.', 'error')
+    }
   }
 }
 
 async function handleClearAllArticles() {
   if (await uiStore.askConfirm('Hapus seluruh warta berita? Halaman berita publik akan dikosongkan.', { confirmText: 'Ya, Kosongkan Semua' })) {
-    newsStore.clearAllArticles()
-    toastMessage.value = 'Seluruh berita berhasil dikosongkan!'
-    showToast.value = true
-    setTimeout(() => { showToast.value = false }, 3000)
+    const res = await newsStore.clearAllArticles()
+    if (res.success) {
+      toastMessage.value = res.message || 'Seluruh berita berhasil dikosongkan!'
+      showToast.value = true
+      setTimeout(() => { showToast.value = false }, 3000)
+    } else {
+      uiStore.notify(res.message || 'Gagal mengosongkan berita di server.', 'error')
+    }
   }
 }
 
@@ -1494,11 +1443,13 @@ async function saveSettings(tabLabel: string) {
   const res = await settingsStore.updateSettings(payload)
   if (res.success) {
     Object.assign(formSettings, settingsStore.settings)
-    toastMessage.value = `Konten ${tabLabel} berhasil diperbarui!`
+    toastMessage.value = `Konten ${tabLabel} berhasil disimpan ke database!`
     showToast.value = true
     setTimeout(() => {
       showToast.value = false
     }, 3500)
+  } else {
+    uiStore.notify(res.message || `Gagal menyimpan konten ${tabLabel} ke server.`, 'error')
   }
 }
 </script>

@@ -45,7 +45,7 @@ function handleArticleClick(article: Article) {
             {{ settingsStore.settings.news_title || 'Berita & liputan' }}
           </h1>
           <p class="text-xs sm:text-base text-slate-600 font-normal leading-relaxed pt-0.5 sm:pt-1">
-            {{ settingsStore.settings.news_subtitle || 'Ikuti perkembangan terkini, pengumuman resmi, dan liputan jalannya Muktamar.' }}
+            {{ settingsStore.settings.news_subtitle || 'Ikuti perkembangan terkini, pengumuman resmi, dan liputan kegiatan Panitia Rojabiyyah & Haul Abah Ke-5.' }}
           </p>
         </div>
       </div>

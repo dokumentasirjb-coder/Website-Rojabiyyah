@@ -74,15 +74,8 @@ class AdminArticleController extends Controller
             }
         }
 
-        // Generate slug unik
-        $baseSlug = Str::slug($validated['title']);
-        $slug = $baseSlug;
-        $counter = 1;
-        while (Article::where('slug', $slug)->exists()) {
-            $slug = "{$baseSlug}-{$counter}";
-            $counter++;
-        }
-        $validated['slug'] = $slug;
+        // Generate slug unik (termasuk mengecek artikel yang di-soft-delete agar tidak bentrok unique constraint DB)
+        $validated['slug'] = $this->generateUniqueSlug($validated['title']);
 
         // Auto-generate excerpt jika kosong
         if (empty($validated['excerpt']) && !empty($validated['content'])) {
@@ -160,14 +153,7 @@ class AdminArticleController extends Controller
 
         // Update slug jika judul diubah
         if (!empty($validated['title']) && $validated['title'] !== $article->title) {
-            $baseSlug = Str::slug($validated['title']);
-            $slug = $baseSlug;
-            $counter = 1;
-            while (Article::where('slug', $slug)->where('id', '!=', $article->id)->exists()) {
-                $slug = "{$baseSlug}-{$counter}";
-                $counter++;
-            }
-            $validated['slug'] = $slug;
+            $validated['slug'] = $this->generateUniqueSlug($validated['title'], $article->id);
         }
 
         // Set published_at jika status beralih ke published
@@ -190,6 +176,25 @@ class AdminArticleController extends Controller
     }
 
     /**
+     * Unggah gambar konten berita ke disk public dan kembalikan URL pendeknya.
+     */
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+        ]);
+
+        $path = $request->file('image')->store('articles', 'public');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gambar berhasil diunggah.',
+            'url'     => url('storage/' . $path),
+            'path'    => $path,
+        ], 201);
+    }
+
+    /**
      * Hapus artikel (soft delete).
      */
     public function destroy(int $id): JsonResponse
@@ -201,5 +206,27 @@ class AdminArticleController extends Controller
             'success' => true,
             'message' => 'Artikel berhasil dihapus.',
         ]);
+    }
+
+    /**
+     * Buat slug unik dari judul artikel (mengecek termasuk artikel soft-deleted).
+     */
+    private function generateUniqueSlug(string $title, ?int $ignoreId = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'artikel-' . time();
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (
+            Article::withTrashed()
+                ->where('slug', $slug)
+                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        return $slug;
     }
 }
