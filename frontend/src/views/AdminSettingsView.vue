@@ -47,25 +47,32 @@ const showNewPwd = ref(false)
 const securityError = ref('')
 const securitySuccess = ref('')
 
-function handleSaveSecurity() {
+const isSavingSecurity = ref(false)
+
+async function handleSaveSecurity() {
   securityError.value = ''
   securitySuccess.value = ''
   if (securityForm.newPassword !== securityForm.confirmPassword) {
     securityError.value = 'Konfirmasi kata sandi baru tidak sama.'
     return
   }
-  const res = authStore.updateLocalCredentials(
-    securityForm.currentPassword,
-    securityForm.email,
-    securityForm.newPassword
-  )
-  if (res.success) {
-    securitySuccess.value = res.message
-    securityForm.currentPassword = ''
-    securityForm.newPassword = ''
-    securityForm.confirmPassword = ''
-  } else {
-    securityError.value = res.message
+  isSavingSecurity.value = true
+  try {
+    const res = await authStore.updateLocalCredentials(
+      securityForm.currentPassword,
+      securityForm.email,
+      securityForm.newPassword
+    )
+    if (res.success) {
+      securitySuccess.value = res.message
+      securityForm.currentPassword = ''
+      securityForm.newPassword = ''
+      securityForm.confirmPassword = ''
+    } else {
+      securityError.value = res.message
+    }
+  } finally {
+    isSavingSecurity.value = false
   }
 }
 

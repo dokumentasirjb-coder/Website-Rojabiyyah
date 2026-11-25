@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { idbGet, idbSet } from '@/lib/idb'
 import { broadcastSync, onSyncBroadcast } from '@/lib/syncChannel'
+import api, { LOCAL_OFFLINE_TOKEN, isApiOffline } from '@/lib/axios'
 
 export interface GuideInfoItem {
   id: number
@@ -358,6 +359,7 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
       }
       window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
       broadcastSync('tabarukan')
+      scheduleServerSync()
     }
   }
 
@@ -425,6 +427,7 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
       }
       window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
       broadcastSync('tabarukan')
+      scheduleServerSync()
     }
   }
 
@@ -481,6 +484,7 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
       }
       window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
       broadcastSync('tabarukan')
+      scheduleServerSync()
     }
   }
 
@@ -548,6 +552,7 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
       } catch {}
       window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
       broadcastSync('tabarukan')
+      scheduleServerSync()
     }
   }
 
@@ -568,6 +573,7 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
       }
       window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
       broadcastSync('tabarukan')
+      scheduleServerSync()
     }
   }
 
@@ -614,8 +620,69 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     persistLocationPoints()
   }
 
-  // Muat salinan lengkap dari IndexedDB saat startup & sinkronkan antar-tab
+  let serverSyncTimer: ReturnType<typeof setTimeout> | null = null
+
+  function scheduleServerSync() {
+    if (typeof window === 'undefined') return
+    const token = localStorage.getItem('admin_token')
+    if (!token || token === LOCAL_OFFLINE_TOKEN || isApiOffline()) return
+
+    if (serverSyncTimer) clearTimeout(serverSyncTimer)
+    serverSyncTimer = setTimeout(() => {
+      const payload = {
+        guideItems: JSON.parse(JSON.stringify(guideItems.value)),
+        tabarukanItems: JSON.parse(JSON.stringify(tabarukanItems.value)),
+        cpList: JSON.parse(JSON.stringify(cpList.value)),
+        guideCategories: JSON.parse(JSON.stringify(guideCategories.value)),
+        locationConfig: JSON.parse(JSON.stringify(locationConfig.value)),
+        locationPoints: JSON.parse(JSON.stringify(locationPoints.value)),
+      }
+      api.post('/admin/settings', { informasi_data_json: payload }).catch(() => {
+        // Fallback tetap tersimpan di IndexedDB & localStorage
+      })
+    }, 500)
+  }
+
+  function applyServerSnapshot(data: any) {
+    if (!data || typeof data !== 'object') return
+    if (Array.isArray(data.guideItems)) {
+      guideItems.value = data.guideItems
+      idbSet(GUIDE_STORAGE_KEY, data.guideItems).catch(() => {})
+      try { localStorage.setItem(GUIDE_STORAGE_KEY, JSON.stringify(data.guideItems)) } catch {}
+    }
+    if (Array.isArray(data.tabarukanItems)) {
+      tabarukanItems.value = data.tabarukanItems
+      idbSet(TABARUKAN_STORAGE_KEY, data.tabarukanItems).catch(() => {})
+      try { localStorage.setItem(TABARUKAN_STORAGE_KEY, JSON.stringify(data.tabarukanItems)) } catch {}
+    }
+    if (Array.isArray(data.cpList)) {
+      cpList.value = data.cpList
+      idbSet(CP_STORAGE_KEY, data.cpList).catch(() => {})
+      try { localStorage.setItem(CP_STORAGE_KEY, JSON.stringify(data.cpList)) } catch {}
+    }
+    if (Array.isArray(data.guideCategories) && data.guideCategories.length > 0) {
+      guideCategories.value = data.guideCategories
+      idbSet(GUIDE_CATEGORIES_STORAGE_KEY, data.guideCategories).catch(() => {})
+      try { localStorage.setItem(GUIDE_CATEGORIES_STORAGE_KEY, JSON.stringify(data.guideCategories)) } catch {}
+    }
+    if (data.locationConfig && typeof data.locationConfig === 'object') {
+      locationConfig.value = { ...DEFAULT_LOCATION_CONFIG, ...data.locationConfig }
+      idbSet(LOCATION_CONFIG_KEY, locationConfig.value).catch(() => {})
+      try { localStorage.setItem(LOCATION_CONFIG_KEY, JSON.stringify(locationConfig.value)) } catch {}
+    }
+    if (Array.isArray(data.locationPoints)) {
+      locationPoints.value = data.locationPoints
+      idbSet(LOCATION_POINTS_KEY, data.locationPoints).catch(() => {})
+      try { localStorage.setItem(LOCATION_POINTS_KEY, JSON.stringify(data.locationPoints)) } catch {}
+    }
+  }
+
+  // Muat salinan lengkap dari IndexedDB saat startup & sinkronkan antar-tab + server
   if (typeof window !== 'undefined') {
+    window.addEventListener('informasi-server-synced', (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      applyServerSnapshot(detail)
+    })
     idbGet<GuideInfoItem[]>(GUIDE_STORAGE_KEY).then(d => {
       if (Array.isArray(d)) guideItems.value = d
     }).catch(() => {})

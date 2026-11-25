@@ -79,4 +79,35 @@ class AuthController extends Controller
             'data'    => new AuthorResource($request->user()),
         ]);
     }
+
+    /**
+     * Perbarui email dan kata sandi admin yang sedang login di database.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'email'            => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'new_password'     => ['required', 'string', 'min:6'],
+        ]);
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kata sandi saat ini tidak cocok.',
+            ], 422);
+        }
+
+        $user->email = $validated['email'];
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email dan kata sandi admin berhasil diperbarui di database!',
+            'data'    => new AuthorResource($user),
+        ]);
+    }
 }

@@ -75,6 +75,7 @@ class SiteSettingController extends Controller
             'social_whatsapp' => 'nullable|string|max:255',
             'agenda_schedules_json' => 'nullable|array',
             'gallery_items_json' => 'nullable|array',
+            'informasi_data_json' => 'nullable|array',
         ]);
 
         $settings = SiteSetting::getSettings();

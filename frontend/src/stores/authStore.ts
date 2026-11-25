@@ -168,17 +168,43 @@ export const useAuthStore = defineStore('auth', () => {
     return getLocalCredentials().email
   }
 
-  function updateLocalCredentials(currentPassword: string, newEmail: string, newPassword: string) {
-    const localCreds = getLocalCredentials()
-    if (currentPassword !== localCreds.password) {
-      return { success: false, message: 'Kata sandi saat ini tidak cocok.' }
-    }
+  async function updateLocalCredentials(currentPassword: string, newEmail: string, newPassword: string) {
     const trimmedEmail = newEmail.trim()
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
       return { success: false, message: 'Format email tidak valid.' }
     }
     if (newPassword.length < 6) {
       return { success: false, message: 'Kata sandi baru minimal 6 karakter.' }
+    }
+
+    // Jika sedang login dengan Sanctum token asli, ubah langsung di database MySQL Laravel
+    if (token.value && token.value !== LOCAL_OFFLINE_TOKEN) {
+      try {
+        const res = await api.post<{ success: boolean; message: string; data: Author }>('/change-password', {
+          current_password: currentPassword,
+          email: trimmedEmail,
+          new_password: newPassword,
+        })
+        if (res.data?.data) {
+          user.value = res.data.data
+          localStorage.setItem('admin_user', JSON.stringify(res.data.data))
+        }
+        // Sinkronkan juga kredensial lokal agar tetap konsisten
+        localStorage.setItem(
+          LOCAL_CREDENTIALS_KEY,
+          JSON.stringify({ email: trimmedEmail, password: newPassword })
+        )
+        return { success: true, message: res.data?.message || 'Email dan kata sandi admin berhasil diperbarui di database!' }
+      } catch (err: any) {
+        const msg = err.response?.data?.message || 'Gagal memperbarui kata sandi di server.'
+        return { success: false, message: msg }
+      }
+    }
+
+    // Mode offline/lokal
+    const localCreds = getLocalCredentials()
+    if (currentPassword !== localCreds.password) {
+      return { success: false, message: 'Kata sandi saat ini tidak cocok.' }
     }
 
     localStorage.setItem(

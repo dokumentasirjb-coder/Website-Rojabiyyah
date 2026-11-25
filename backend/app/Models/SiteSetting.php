@@ -59,11 +59,13 @@ class SiteSetting extends Model
         'social_whatsapp',
         'agenda_schedules_json',
         'gallery_items_json',
+        'informasi_data_json',
     ];
 
     protected $casts = [
         'agenda_schedules_json' => 'array',
         'gallery_items_json' => 'array',
+        'informasi_data_json' => 'array',
     ];
 
     /**

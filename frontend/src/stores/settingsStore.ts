@@ -665,10 +665,17 @@ export const useSettingsStore = defineStore('settings', () => {
       isLoading.value = true
       error.value = null
       try {
-        const response = await api.get<{ success: boolean; data: SiteSettings }>('/settings')
+        const response = await api.get<{ success: boolean; data: SiteSettings & { informasi_data_json?: any } }>('/settings')
         if (response.data?.data) {
           settings.value = mergeParsedSettings({ ...settings.value, ...response.data.data })
           await saveLocal()
+          if (response.data.data.informasi_data_json && typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('informasi-server-synced', {
+                detail: response.data.data.informasi_data_json,
+              })
+            )
+          }
         }
       } catch {
         // Graceful fallback: use local/IndexedDB if API offline
