@@ -3,9 +3,11 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
+import { idbSet, idbGet } from '@/lib/idb'
 import { useSettingsStore, DEFAULT_SCHEDULE_DAYS, DEFAULT_GALLERY_ALBUMS, DEFAULT_ABOUT_STRUCTURE_ITEMS, DEFAULT_ABOUT_HISTORY_PARAGRAPHS } from '@/stores/settingsStore'
 import { useNewsStore } from '@/stores/newsStore'
-import { useTabarukanStore, type TabarukanItem, type SecretariatContact, type GuideInfoItem } from '@/stores/tabarukanStore'
+import { useTabarukanStore, type TabarukanItem, type SecretariatContact, type GuideInfoItem, type LocationPoint } from '@/stores/tabarukanStore'
+import { useUiStore } from '@/stores/uiStore'
 import type { GalleryPhoto, GalleryAlbum, GalleryPhotoItem, Article, ScheduleDay, ScheduleItem, AboutStructureItem, AboutParagraphItem } from '@/types'
 import { 
   Layers, 
@@ -63,6 +65,7 @@ const route = useRoute()
 const settingsStore = useSettingsStore()
 const newsStore = useNewsStore()
 const tabarukanStore = useTabarukanStore()
+const uiStore = useUiStore()
 
 const activeTab = ref<'ringkasan' | 'beranda' | 'tentang' | 'agenda' | 'berita' | 'galeri' | 'informasi'>('ringkasan')
 const showToast = ref(false)
@@ -96,12 +99,12 @@ function handleAddGuideCategory() {
     setTimeout(() => { showToast.value = false }, 2500)
     newGuideCategoryInput.value = ''
   } else {
-    alert('Kategori sudah ada atau tidak valid.')
+    uiStore.notify('Kategori sudah ada atau tidak valid.', 'warning')
   }
 }
 
-function handleRemoveGuideCategory(cat: string) {
-  if (confirm(`Hapus kategori "${cat}" dari daftar filter?`)) {
+async function handleRemoveGuideCategory(cat: string) {
+  if (await uiStore.askConfirm(`Hapus kategori "${cat}" dari daftar filter?`)) {
     tabarukanStore.deleteGuideCategory(cat)
     toastMessage.value = `Kategori "${cat}" berhasil dihapus!`
     showToast.value = true
@@ -109,8 +112,8 @@ function handleRemoveGuideCategory(cat: string) {
   }
 }
 
-function handleResetGuideCategories() {
-  if (confirm('Kembalikan daftar kategori panduan ke standar awal?')) {
+async function handleResetGuideCategories() {
+  if (await uiStore.askConfirm('Kembalikan daftar kategori panduan ke standar awal?', { confirmText: 'Ya, Kembalikan', variant: 'warning' })) {
     tabarukanStore.resetGuideCategories()
     toastMessage.value = 'Kategori dikembalikan ke standar awal.'
     showToast.value = true
@@ -144,7 +147,7 @@ function openEditGuide(guide: GuideInfoItem) {
 
 function saveGuide() {
   if (!guideForm.title.trim()) {
-    alert('Judul Panduan Informasi wajib diisi.')
+    uiStore.notify('Judul Panduan Informasi wajib diisi.', 'warning')
     return
   }
   tabarukanStore.saveGuideItem({
@@ -162,8 +165,8 @@ function saveGuide() {
   setTimeout(() => { showToast.value = false }, 3000)
 }
 
-function deleteGuide(id: number) {
-  if (confirm('Apakah Anda yakin ingin menghapus panduan informasi ini?')) {
+async function deleteGuide(id: number) {
+  if (await uiStore.askConfirm('Apakah Anda yakin ingin menghapus panduan informasi ini?')) {
     tabarukanStore.deleteGuideItem(id)
     toastMessage.value = 'Panduan informasi berhasil dihapus.'
     showToast.value = true
@@ -212,11 +215,11 @@ function openEditTabarukan(item: TabarukanItem) {
 
 function saveTabarukan() {
   if (!tabarukanForm.title.trim()) {
-    alert('Judul / Nama Cinderamata wajib diisi.')
+    uiStore.notify('Judul / Nama Cinderamata wajib diisi.', 'warning')
     return
   }
   if (!tabarukanForm.image_url.trim()) {
-    alert('Foto cinderamata Feed IG wajib diisi.')
+    uiStore.notify('Foto cinderamata Feed IG wajib diisi.', 'warning')
     return
   }
   tabarukanStore.saveTabarukanItem({
@@ -234,8 +237,8 @@ function saveTabarukan() {
   setTimeout(() => { showToast.value = false }, 3000)
 }
 
-function deleteTabarukan(id: number) {
-  if (confirm('Apakah Anda yakin ingin menghapus item tabarukan ini?')) {
+async function deleteTabarukan(id: number) {
+  if (await uiStore.askConfirm('Apakah Anda yakin ingin menghapus item tabarukan ini?')) {
     tabarukanStore.deleteTabarukanItem(id)
     toastMessage.value = 'Item tabarukan berhasil dihapus.'
     showToast.value = true
@@ -243,8 +246,8 @@ function deleteTabarukan(id: number) {
   }
 }
 
-function handleDeleteTabarukan(item: TabarukanItem) {
-  if (confirm(`Hapus item tabarukan "${item.title}"?`)) {
+async function handleDeleteTabarukan(item: TabarukanItem) {
+  if (await uiStore.askConfirm(`Hapus item tabarukan "${item.title}"?`)) {
     tabarukanStore.deleteTabarukanItem(item.id)
     toastMessage.value = 'Item tabarukan berhasil dihapus.'
     showToast.value = true
@@ -291,7 +294,7 @@ function openEditCP(cp: SecretariatContact) {
 
 function saveCP() {
   if (!cpForm.name.trim()) {
-    alert('Nama Narahubung wajib diisi.')
+    uiStore.notify('Nama Narahubung wajib diisi.', 'warning')
     return
   }
   tabarukanStore.saveCP({
@@ -309,10 +312,96 @@ function saveCP() {
   setTimeout(() => { showToast.value = false }, 3000)
 }
 
-function handleDeleteCP(cp: SecretariatContact) {
-  if (confirm(`Hapus kontak narahubung "${cp.name}"?`)) {
+async function handleDeleteCP(cp: SecretariatContact) {
+  if (await uiStore.askConfirm(`Hapus kontak narahubung "${cp.name}"?`)) {
     tabarukanStore.deleteCP(cp.id)
     toastMessage.value = 'Kontak narahubung berhasil dihapus.'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3000)
+  }
+}
+
+// ============================================================
+// PETA & TITIK LOKASI ACARA (CUSTOM GOOGLE MAPS & BAGAN)
+// ============================================================
+const locationConfigForm = reactive({
+  section_title: tabarukanStore.locationConfig.section_title,
+  section_subtitle: tabarukanStore.locationConfig.section_subtitle,
+  main_map_title: tabarukanStore.locationConfig.main_map_title,
+  main_address: tabarukanStore.locationConfig.main_address,
+  google_maps_embed_url: tabarukanStore.locationConfig.google_maps_embed_url,
+  google_maps_link_url: tabarukanStore.locationConfig.google_maps_link_url
+})
+
+function saveLocationMapSettings() {
+  tabarukanStore.saveLocationConfig({ ...locationConfigForm })
+  toastMessage.value = 'Pengaturan Peta & Alamat Google Maps berhasil disimpan!'
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 3000)
+}
+
+const isLocationPointModalOpen = ref(false)
+const isEditingLocationPoint = ref(false)
+const locationPointForm = reactive({
+  id: undefined as number | undefined,
+  title: '',
+  badge: 'Lokasi Acara',
+  address: '',
+  maps_url: '',
+  image_url: '',
+  is_dark: false
+})
+
+function openAddLocationPoint() {
+  isEditingLocationPoint.value = false
+  locationPointForm.id = undefined
+  locationPointForm.title = ''
+  locationPointForm.badge = 'Lokasi Acara'
+  locationPointForm.address = ''
+  locationPointForm.maps_url = ''
+  locationPointForm.image_url = ''
+  locationPointForm.is_dark = false
+  isLocationPointModalOpen.value = true
+}
+
+function openEditLocationPoint(point: LocationPoint) {
+  isEditingLocationPoint.value = true
+  locationPointForm.id = point.id
+  locationPointForm.title = point.title
+  locationPointForm.badge = point.badge || 'Lokasi Acara'
+  locationPointForm.address = point.address || ''
+  locationPointForm.maps_url = point.maps_url || ''
+  locationPointForm.image_url = point.image_url || ''
+  locationPointForm.is_dark = !!point.is_dark
+  isLocationPointModalOpen.value = true
+}
+
+function saveLocationPointItem() {
+  if (!locationPointForm.title.trim()) {
+    uiStore.notify('Judul Titik Lokasi wajib diisi.', 'warning')
+    return
+  }
+  tabarukanStore.saveLocationPoint({
+    id: locationPointForm.id,
+    title: locationPointForm.title.trim(),
+    badge: locationPointForm.badge.trim() || 'Lokasi Acara',
+    address: locationPointForm.address.trim(),
+    maps_url: locationPointForm.maps_url.trim(),
+    image_url: locationPointForm.image_url.trim(),
+    is_dark: locationPointForm.is_dark
+  })
+  isLocationPointModalOpen.value = false
+  toastMessage.value = isEditingLocationPoint.value
+    ? 'Titik lokasi acara berhasil diperbarui!'
+    : 'Titik lokasi acara baru berhasil ditambahkan!'
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 3000)
+}
+
+async function handleDeleteLocationPoint(point: LocationPoint) {
+  if (await uiStore.askConfirm(`Hapus bagan titik lokasi "${point.title}"?`)) {
+    tabarukanStore.deleteLocationPoint(point.id)
+    toastMessage.value = 'Titik lokasi acara berhasil dihapus.'
     showToast.value = true
     setTimeout(() => { showToast.value = false }, 3000)
   }
@@ -376,12 +465,12 @@ function addNewDay() {
   selectedDayId.value = newId
 }
 
-function deleteCurrentDay() {
+async function deleteCurrentDay() {
   if (schedules.value.length <= 1) {
-    alert('Minimal harus ada 1 hari agenda.')
+    uiStore.notify('Minimal harus ada 1 hari agenda.', 'warning')
     return
   }
-  if (confirm(`Hapus jadwal untuk ${currentDay.value?.dayName || 'hari ini'} beserta seluruh kegiatannya?`)) {
+  if (await uiStore.askConfirm(`Hapus jadwal untuk ${currentDay.value?.dayName || 'hari ini'} beserta seluruh kegiatannya?`)) {
     const idx = schedules.value.findIndex(d => d.id === selectedDayId.value)
     if (idx !== -1) {
       schedules.value.splice(idx, 1)
@@ -412,7 +501,7 @@ function openEditSessionModal(item: ScheduleItem) {
 
 function saveSession() {
   if (!sessionForm.time || !sessionForm.title) {
-    alert('Waktu dan Judul Kegiatan wajib diisi.')
+    uiStore.notify('Waktu dan Judul Kegiatan wajib diisi.', 'warning')
     return
   }
 
@@ -430,8 +519,8 @@ function saveSession() {
   isSessionModalOpen.value = false
 }
 
-function deleteSession(itemIdx: number) {
-  if (confirm('Hapus kegiatan ini dari jadwal?')) {
+async function deleteSession(itemIdx: number) {
+  if (await uiStore.askConfirm('Hapus kegiatan ini dari jadwal?')) {
     currentDay.value?.items.splice(itemIdx, 1)
   }
 }
@@ -635,7 +724,7 @@ function selectPresetUrl(url: string, defaultText: string) {
 
 function applyLinkModal() {
   if (!linkModalForm.url) {
-    alert('Tujuan URL tautan wajib diisi.')
+    uiStore.notify('Tujuan URL tautan wajib diisi.', 'warning')
     return
   }
   const text = linkModalForm.text || (linkModalForm.type === 'banner' ? 'BACA JUGA: Informasi Terkait' : 'Lihat Tautan')
@@ -789,9 +878,9 @@ function openEditArticle(art: Article) {
   newsMode.value = 'form'
 }
 
-function handleSaveArticle(targetStatus?: 'published' | 'draft') {
+async function handleSaveArticle(targetStatus?: 'published' | 'draft') {
   if (!articleForm.title || !articleForm.title.trim()) {
-    alert('Judul Berita wajib diisi sebelum menyimpan/menerbitkan.')
+    uiStore.notify('Judul Berita wajib diisi sebelum menyimpan/menerbitkan.', 'warning')
     const titleInput = document.querySelector('input[placeholder*="judul berita"]') as HTMLInputElement | null
     if (titleInput) titleInput.focus()
     return
@@ -831,7 +920,7 @@ function handleSaveArticle(targetStatus?: 'published' | 'draft') {
     ? articleForm.cover_image.trim()
     : 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80'
 
-  newsStore.saveArticle({
+  await newsStore.saveArticle({
     id: articleForm.id,
     title: articleForm.title.trim(),
     slug: finalSlug,
@@ -886,6 +975,18 @@ function handleInsertArticleImage(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    uiStore.notify('Format file tidak didukung. Pilih gambar JPG, PNG, atau WebP.', 'error')
+    target.value = ''
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    uiStore.notify('Ukuran foto terlalu besar (maksimal 10 MB). Pilih foto di bawah 10 MB.', 'error')
+    target.value = ''
+    return
+  }
 
   const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
 
@@ -945,7 +1046,7 @@ function handleInsertArticleImage(e: Event) {
   }
 
   reader.onerror = () => {
-    alert('Gagal membaca file gambar dari komputer.')
+    uiStore.notify('Gagal membaca file gambar dari komputer.', 'error')
   }
 
   reader.readAsDataURL(file)
@@ -959,8 +1060,9 @@ function applyImageModal() {
   }
 
   if (!articleForm.mediaMap) articleForm.mediaMap = {}
-  const count = Object.keys(articleForm.mediaMap).length + 1
-  const photoKey = `foto_${count}`
+  let idx = 1
+  while (articleForm.mediaMap[`foto_${idx}`]) idx++
+  const photoKey = `foto_${idx}`
   articleForm.mediaMap[photoKey] = imageModalForm.base64
 
   // Simpan juga ke cache darurat agar foto_1 tetap bisa di-resolve jika mediaMap terlepas
@@ -970,11 +1072,14 @@ function applyImageModal() {
       existingCache[photoKey] = imageModalForm.base64
       localStorage.setItem('muktamar_last_inserted_media', JSON.stringify(existingCache))
     } catch {}
+    try {
+      idbSet(`media_${photoKey}`, imageModalForm.base64)
+    } catch {}
   }
 
   const captionText = imageModalForm.caption.trim() || 'Dokumentasi Acara'
-  // Masukkan langsung data URL gambar pada naskah Markdown agar gambar tampil mandiri dan tidak pernah rusak
-  const snippet = `\n\n![${captionText}](${imageModalForm.base64})\n\n`
+  // Gunakan format singkat dan rapi: ![Caption](foto_1) agar naskah Markdown bersih dan mudah dibaca
+  const snippet = `\n\n![${captionText}](${photoKey})\n\n`
 
   const val = articleForm.content || ''
   let start = savedCursorPos.value.start
@@ -999,7 +1104,7 @@ function applyImageModal() {
 }
 
 async function handleDeleteArticle(art: Article) {
-  if (confirm(`Hapus artikel "${art.title}"?`)) {
+  if (await uiStore.askConfirm(`Hapus artikel "${art.title}"?`)) {
     await newsStore.deleteArticle(art.id)
     toastMessage.value = 'Berita berhasil dihapus!'
     showToast.value = true
@@ -1008,7 +1113,7 @@ async function handleDeleteArticle(art: Article) {
 }
 
 async function handleClearAllArticles() {
-  if (confirm('Hapus seluruh warta berita? Halaman berita publik akan dikosongkan.')) {
+  if (await uiStore.askConfirm('Hapus seluruh warta berita? Halaman berita publik akan dikosongkan.', { confirmText: 'Ya, Kosongkan Semua' })) {
     newsStore.clearAllArticles()
     toastMessage.value = 'Seluruh berita berhasil dikosongkan!'
     showToast.value = true
@@ -1103,7 +1208,7 @@ function openEditAlbum(album: GalleryAlbum) {
 
 async function saveAlbum() {
   if (!albumForm.title) {
-    alert('Judul Album wajib diisi.')
+    uiStore.notify('Judul Album wajib diisi.', 'warning')
     return
   }
   const currentAlbums = [...(settingsStore.settings.gallery_albums_json || DEFAULT_GALLERY_ALBUMS)]
@@ -1155,7 +1260,7 @@ async function toggleAlbumStatus(album: GalleryAlbum) {
 }
 
 async function deleteAlbum(album: GalleryAlbum) {
-  if (confirm(`Hapus album "${album.title}" beserta seluruh fotonya?`)) {
+  if (await uiStore.askConfirm(`Hapus album "${album.title}" beserta seluruh fotonya?`)) {
     const currentAlbums = [...(settingsStore.settings.gallery_albums_json || DEFAULT_GALLERY_ALBUMS)]
     const updated = currentAlbums.filter(a => a.id !== album.id)
     await settingsStore.updateSettings({ gallery_albums_json: updated })
@@ -1189,7 +1294,7 @@ function onPhotoFilesSelected(e: Event) {
 
 async function handleUploadPhotosToAlbum() {
   if (!photoUploadFiles.value.length) {
-    alert('Pilih minimal 1 file foto dari komputer.')
+    uiStore.notify('Pilih minimal 1 file foto dari komputer.', 'warning')
     return
   }
   if (!selectedAlbum.value) return
@@ -1303,7 +1408,7 @@ async function togglePhotoVisibility(photo: GalleryPhotoItem) {
 }
 
 async function deletePhotoItem(photo: GalleryPhotoItem) {
-  if (confirm(`Hapus foto "${photo.title}" dari album?`)) {
+  if (await uiStore.askConfirm(`Hapus foto "${photo.title}" dari album?`)) {
     const currentAlbums = [...(settingsStore.settings.gallery_albums_json || DEFAULT_GALLERY_ALBUMS)]
     for (const alb of currentAlbums) {
       const idx = (alb.photos || []).findIndex(p => p.id === photo.id)
@@ -1378,8 +1483,17 @@ const totalAlbums = computed(() => {
 })
 
 async function saveSettings(tabLabel: string) {
-  const res = await settingsStore.updateSettings(formSettings)
+  // Pastikan data Galeri & Agenda terbaru dari store tidak tertimpa oleh snapshot formSettings lama
+  const payload = { ...formSettings }
+  if (tabLabel !== 'Galeri') {
+    payload.gallery_albums_json = settingsStore.settings.gallery_albums_json
+  }
+  if (tabLabel !== 'Agenda') {
+    payload.agenda_schedules_json = settingsStore.settings.agenda_schedules_json
+  }
+  const res = await settingsStore.updateSettings(payload)
   if (res.success) {
+    Object.assign(formSettings, settingsStore.settings)
     toastMessage.value = `Konten ${tabLabel} berhasil diperbarui!`
     showToast.value = true
     setTimeout(() => {
@@ -2787,7 +2901,7 @@ async function saveSettings(tabLabel: string) {
             <ImageUploadInput
               v-model="articleForm.cover_image"
               label="Gambar Sampul (Unggah dari Komputer) *"
-              description="Pilih foto sampul berita langsung dari laptop/komputer Anda (JPG, PNG, WebP)."
+              description="Minimal 100 KB – disarankan 300 KB s/d 2 MB (maks. 10 MB). Format JPG, PNG, WebP (otomatis dikompres)."
               aspect="wide"
             />
 
@@ -3699,7 +3813,7 @@ async function saveSettings(tabLabel: string) {
             <div class="text-[11px] text-slate-400 font-medium">Dashboard / Konten Situs / Informasi Umum</div>
             <h2 class="text-xl font-bold text-white mt-1">Kelola Informasi Umum</h2>
             <p class="text-xs text-slate-400 mt-0.5">
-              Kelola panduan penginapan & transportasi (berbasis teks & kontak), katalog Tabarukan (format Feed IG), dan CP Kesekretariatan.
+              Kelola panduan penginapan &amp; transportasi (berbasis teks &amp; kontak), Tabbarukan Haul &amp; Marchedise Haul (format Feed IG), CP Kesekretariatan, dan Peta Titik Lokasi Acara.
             </p>
           </div>
           <div class="flex items-center gap-2.5">
@@ -4053,32 +4167,202 @@ async function saveSettings(tabLabel: string) {
           </div>
         </div>
 
-        <!-- 3. PETA & LOKASI ACARA -->
-        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-5">
-          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+        <!-- 4. PETA & TITIK LOKASI ACARA (CUSTOM GOOGLE MAPS & BAGAN) -->
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl p-6 sm:p-8 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#143d30] pb-4">
             <div>
-              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-                Peta & Lokasi Acara
-              </span>
+              <div class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 mb-1">
+                <MapPin class="w-3.5 h-3.5" />
+                <span>Peta &amp; Titik Lokasi Acara</span>
+              </div>
+              <h3 class="text-base font-bold text-white">
+                Kelola Alamat Google Maps &amp; Bagan Titik Lokasi
+              </h3>
               <p class="text-xs text-slate-400 mt-0.5">
-                Lokasi terhubung ke Google Maps Pondok Pesantren Bahrul Ulum Tambakberas Jombang.
+                Atur peta Google Maps utama dan tambahkan sebanyak mungkin bagan titik lokasi acara secara kustom.
               </p>
             </div>
-            <a
-              href="/informasi"
-              target="_blank"
-              class="px-4 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Lihat Halaman Publik</span>
-              <ExternalLink class="w-3.5 h-3.5" />
-            </a>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="openAddLocationPoint"
+                class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Plus class="w-4 h-4" />
+                <span>Tambah Titik Lokasi</span>
+              </button>
+              <a
+                href="/informasi"
+                target="_blank"
+                class="px-3.5 py-2 rounded-xl bg-[#0d261e] hover:bg-[#13352a] text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Lihat Publik</span>
+                <ExternalLink class="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
 
-          <div class="p-4 rounded-2xl bg-[#071913] border border-[#143d30] text-xs text-slate-300 flex items-start gap-3">
-            <MapPin class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <!-- Pengaturan Peta Utama & Alamat Google Maps -->
+          <div class="p-5 rounded-2xl bg-[#071913] border border-[#143d30] space-y-4">
+            <div class="flex items-center justify-between border-b border-[#143d30]/70 pb-3">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                Pengaturan Peta Google Maps Utama
+              </span>
+              <button
+                type="button"
+                @click="saveLocationMapSettings"
+                class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Save class="w-3.5 h-3.5" />
+                <span>Simpan Peta Utama</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">
+                  Judul Bagian Peta
+                </label>
+                <input
+                  v-model="locationConfigForm.section_title"
+                  type="text"
+                  placeholder="Contoh: Peta Lokasi Penyelenggaraan Acara"
+                  class="w-full px-3.5 py-2 rounded-xl bg-[#05130f] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">
+                  Label Titik Pusat
+                </label>
+                <input
+                  v-model="locationConfigForm.main_map_title"
+                  type="text"
+                  placeholder="Contoh: Titik Pusat Lokasi:"
+                  class="w-full px-3.5 py-2 rounded-xl bg-[#05130f] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
             <div>
-              <strong class="text-white block font-bold mb-0.5">Pondok Pesantren Bahrul 'Ulum Tambakberas Jombang</strong>
-              <span>Jl. KH. Wahab Chasbullah, Tambakrejo, Kec. Jombang, Jawa Timur 61451. Dilengkapi rute kedatangan dari Stasiun Kereta Api Jombang dan Exit Tol Tembelang.</span>
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">
+                Deskripsi Singkat Bagian Peta
+              </label>
+              <input
+                v-model="locationConfigForm.section_subtitle"
+                type="text"
+                placeholder="Panduan geografis dan akses lokasi acara..."
+                class="w-full px-3.5 py-2 rounded-xl bg-[#05130f] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">
+                Alamat Lengkap Lokasi Utama
+              </label>
+              <textarea
+                v-model="locationConfigForm.main_address"
+                rows="2"
+                placeholder="Masukkan alamat lengkap lokasi utama..."
+                class="w-full px-3.5 py-2 rounded-xl bg-[#05130f] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              ></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">
+                  Alamat / Link Embed Google Maps (atau Nama Tempat)
+                </label>
+                <input
+                  v-model="locationConfigForm.google_maps_embed_url"
+                  type="text"
+                  placeholder="Tempel link Embed / koordinat / nama tempat Google Maps..."
+                  class="w-full px-3.5 py-2 rounded-xl bg-[#05130f] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                />
+                <p class="text-[10px] text-slate-400 mt-1">
+                  Bisa diisi link Embed iframe Google Maps, URL koordinat @lat,lng, atau nama tempat.
+                </p>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">
+                  Link Tombol "Buka Google Maps"
+                </label>
+                <input
+                  v-model="locationConfigForm.google_maps_link_url"
+                  type="url"
+                  placeholder="https://maps.google.com/?q=..."
+                  class="w-full px-3.5 py-2 rounded-xl bg-[#05130f] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Daftar Bagan Titik-Titik Lokasi Acara -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300">
+                Daftar Bagan Titik Lokasi ({{ tabarukanStore.locationPoints.length }} titik)
+              </span>
+            </div>
+
+            <div v-if="tabarukanStore.locationPoints.length === 0" class="p-6 rounded-2xl bg-[#071913] border border-dashed border-[#143d30] text-center text-xs text-slate-400">
+              Belum ada bagan titik lokasi. Klik "+ Tambah Titik Lokasi" untuk menambahkan titik lokasi acara.
+            </div>
+
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div
+                v-for="point in tabarukanStore.locationPoints"
+                :key="point.id"
+                class="bg-[#071913] border border-[#143d30] rounded-2xl p-4 flex flex-col justify-between space-y-3"
+              >
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      {{ point.badge || 'Lokasi Acara' }}
+                    </span>
+                    <span v-if="point.is_dark" class="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                      Sorotan Gelap
+                    </span>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <img
+                      v-if="point.image_url"
+                      :src="point.image_url"
+                      :alt="point.title"
+                      class="w-12 h-12 rounded-xl object-cover border border-[#143d30] shrink-0"
+                    />
+                    <div class="min-w-0">
+                      <h4 class="font-bold text-sm text-white leading-snug">
+                        {{ point.title }}
+                      </h4>
+                      <p class="text-xs text-slate-400 line-clamp-3 leading-relaxed mt-0.5">
+                        {{ point.address }}
+                      </p>
+                    </div>
+                  </div>
+                  <p v-if="point.maps_url" class="text-[10px] text-emerald-400 font-mono truncate">
+                    {{ point.maps_url }}
+                  </p>
+                </div>
+
+                <div class="pt-3 border-t border-[#143d30] flex items-center justify-end gap-1.5">
+                  <button
+                    type="button"
+                    @click="openEditLocationPoint(point)"
+                    class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 class="w-3.5 h-3.5" />
+                    <span>Ubah</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="handleDeleteLocationPoint(point)"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                    title="Hapus Titik Lokasi"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -4751,6 +5035,114 @@ async function saveSettings(tabLabel: string) {
             >
               <CheckCircle2 class="w-4 h-4" />
               <span>Simpan Narahubung</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: ADD / EDIT BAGAN TITIK LOKASI ACARA -->
+    <!-- ============================================================ -->
+    <Teleport to="body">
+      <div
+        v-if="isLocationPointModalOpen"
+        class="fixed inset-0 bg-black/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+      >
+        <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-5 text-white shadow-2xl max-h-[92vh] overflow-y-auto">
+          <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+            <h3 class="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <MapPin class="w-4 h-4" />
+              <span>{{ isEditingLocationPoint ? 'Edit Bagan Titik Lokasi' : 'Tambah Bagan Titik Lokasi Baru' }}</span>
+            </h3>
+            <button @click="isLocationPointModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Judul / Nama Titik Lokasi *
+                </label>
+                <input
+                  v-model="locationPointForm.title"
+                  type="text"
+                  placeholder="Contoh: Area Parkir Bus Jamaah"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Label / Kategori Bagan
+                </label>
+                <input
+                  v-model="locationPointForm.badge"
+                  type="text"
+                  placeholder="Contoh: Parkir, Transit, Posko, Lokasi Utama"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Alamat / Keterangan Rute
+              </label>
+              <textarea
+                v-model="locationPointForm.address"
+                rows="3"
+                placeholder="Jelaskan alamat, patokan, atau rute menuju titik lokasi ini..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                Link Google Maps Titik Ini (Opsional)
+              </label>
+              <input
+                v-model="locationPointForm.maps_url"
+                type="url"
+                placeholder="https://maps.google.com/?q=..."
+                class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <ImageUploadInput
+              v-model="locationPointForm.image_url"
+              label="Foto Kecil Lokasi (Opsional)"
+              description="Foto lokasi untuk memudahkan jamaah mengenali tempat (otomatis dikompres)."
+              aspect="square"
+              :max-dimension="800"
+            />
+
+            <label class="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer select-none">
+              <input
+                v-model="locationPointForm.is_dark"
+                type="checkbox"
+                class="w-4 h-4 rounded border-[#143d30] bg-[#071913] text-emerald-500 focus:ring-emerald-500"
+              />
+              <span>Tampilkan sebagai kartu sorotan gelap (aksen khusus)</span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#143d30]">
+            <button
+              type="button"
+              @click="isLocationPointModalOpen = false"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="saveLocationPointItem"
+              class="px-5 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <CheckCircle2 class="w-4 h-4" />
+              <span>Simpan Titik Lokasi</span>
             </button>
           </div>
         </div>

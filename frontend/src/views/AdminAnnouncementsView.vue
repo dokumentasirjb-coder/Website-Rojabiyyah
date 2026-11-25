@@ -7,7 +7,9 @@ import {
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/lib/axios'
 import type { Announcement } from '@/types'
+import { useUiStore } from '@/stores/uiStore'
 
+const uiStore = useUiStore()
 const announcements = ref<Announcement[]>([])
 const isLoading = ref(false)
 const searchQuery = ref('')
@@ -148,7 +150,7 @@ async function handleDelete() {
     deletingItem.value = null
     fetchAnnouncements()
   } catch (err: any) {
-    alert(err.response?.data?.message || 'Gagal menghapus pengumuman.')
+    uiStore.notify(err.response?.data?.message || 'Gagal menghapus pengumuman.', 'error')
   } finally {
     isDeleting.value = false
   }

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useUiStore } from '@/stores/uiStore'
 import type { GalleryPhoto } from '@/types'
 import { 
   Image as ImageIcon, 
@@ -18,6 +19,7 @@ import {
 } from 'lucide-vue-next'
 
 const settingsStore = useSettingsStore()
+const uiStore = useUiStore()
 
 const activeCategoryFilter = ref('semua')
 const isModalOpen = ref(false)
@@ -76,7 +78,7 @@ function openEditModal(photo: GalleryPhoto) {
 
 async function savePhoto() {
   if (!form.value.title || !form.value.src) {
-    alert('Mohon isi judul foto dan URL gambar.')
+    uiStore.notify('Mohon isi judul foto dan URL gambar.', 'warning')
     return
   }
 
@@ -106,7 +108,7 @@ async function savePhoto() {
 }
 
 async function deletePhoto(photo: GalleryPhoto) {
-  if (confirm(`Hapus foto "${photo.title}" dari galeri?`)) {
+  if (await uiStore.askConfirm(`Hapus foto "${photo.title}" dari galeri?`)) {
     const currentItems = galleryList.value.filter(i => i.id !== photo.id)
     await settingsStore.updateSettings({
       gallery_items_json: currentItems

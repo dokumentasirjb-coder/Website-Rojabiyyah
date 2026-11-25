@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, RouterLink, useRoute } from 'vue-router'
 import { 
   LayoutDashboard, 
@@ -28,14 +28,18 @@ const route = useRoute()
 
 const isMobileSidebarOpen = ref(false)
 
+onMounted(() => {
+  settingsStore.fetchSettings()
+})
+
 async function handleLogout() {
   await authStore.logout()
-  router.push('/login')
+  router.push('/panel-panitia')
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#071913] text-slate-100 flex font-sans antialiased selection:bg-[#008f8a] selection:text-white">
+  <div class="admin-shell min-h-screen bg-[#071913] text-slate-100 flex font-sans antialiased selection:bg-[#008f8a] selection:text-white">
     <!-- Mobile Backdrop -->
     <div
       v-if="isMobileSidebarOpen"
@@ -52,7 +56,7 @@ async function handleLogout() {
       <div class="flex-1 overflow-y-auto py-5 px-4 space-y-6">
         <!-- Brand Header -->
         <div class="flex items-center justify-between px-2">
-          <RouterLink to="/admin/content" class="flex items-center gap-3 group">
+          <RouterLink to="/admin/content" class="flex items-center gap-3 group min-w-0">
             <!-- Custom Uploaded Logo (Synchronized with Public Site) -->
             <div
               v-if="settingsStore.settings.logo_image_url"
@@ -61,7 +65,7 @@ async function handleLogout() {
               <img
                 :src="settingsStore.settings.logo_image_url"
                 :alt="settingsStore.settings.site_title || 'Logo'"
-                class="h-full w-auto max-w-[110px] object-contain drop-shadow-sm"
+                class="h-full w-auto max-w-[120px] object-contain drop-shadow-sm mix-blend-screen"
               />
             </div>
             <!-- Fallback Badge Emblem (When no custom logo is uploaded) -->
@@ -69,15 +73,15 @@ async function handleLogout() {
               v-else
               class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#008f8a] to-[#005a40] text-white flex items-center justify-center font-bold text-sm shadow-md ring-1 ring-white/10 shrink-0"
             >
-              <span class="font-serif">{{ settingsStore.settings.navbar_badge || 'NU' }}</span>
+              <span class="font-serif">{{ settingsStore.settings.navbar_badge || '35' }}</span>
             </div>
 
             <div class="min-w-0">
-              <span class="block text-xs font-bold text-white tracking-tight leading-tight truncate group-hover:text-emerald-400 transition-colors">
-                {{ settingsStore.settings.site_title || 'Muktamar NU' }}
+              <span class="block text-[10px] uppercase tracking-wider font-semibold text-emerald-300/90 leading-tight truncate">
+                {{ settingsStore.settings.site_title || 'PANITIA ROJABIYYAH' }}
               </span>
-              <span class="block text-[10px] text-emerald-400/80 font-medium truncate mt-0.5">
-                {{ authStore.user?.role || 'Super Admin' }}
+              <span class="block text-xs font-extrabold text-white tracking-tight leading-tight truncate group-hover:text-emerald-400 transition-colors mt-0.5">
+                {{ settingsStore.settings.site_subtitle || 'HAUL ABAH KE-5' }}
               </span>
             </div>
           </RouterLink>

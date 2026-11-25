@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { idbGet, idbSet } from '@/lib/idb'
+import { broadcastSync, onSyncBroadcast } from '@/lib/syncChannel'
 
 export interface GuideInfoItem {
   id: number
@@ -36,10 +38,96 @@ export interface SecretariatContact {
   is_active: boolean
 }
 
+export interface LocationPoint {
+  id: number
+  title: string
+  badge?: string
+  address: string
+  maps_url?: string
+  image_url?: string
+  is_dark?: boolean
+}
+
+export interface EventLocationConfig {
+  section_title: string
+  section_subtitle: string
+  main_map_title: string
+  main_address: string
+  google_maps_embed_url: string
+  google_maps_link_url: string
+}
+
 const GUIDE_STORAGE_KEY = 'rojabiyyah_guide_items'
 const TABARUKAN_STORAGE_KEY = 'rojabiyyah_tabarukan_items'
 const CP_STORAGE_KEY = 'rojabiyyah_secretariat_cp'
 const GUIDE_CATEGORIES_STORAGE_KEY = 'rojabiyyah_guide_categories'
+const LOCATION_CONFIG_KEY = 'rojabiyyah_location_config_v1'
+const LOCATION_POINTS_KEY = 'rojabiyyah_location_points_v1'
+
+export function normalizeGoogleMapsEmbedUrl(input: string, fallbackAddress = ''): string {
+  const raw = (input || '').trim()
+  // Jika user menempelkan kode HTML <iframe ... src="...">, ambil URL src-nya
+  const iframeMatch = raw.match(/src=["']([^"']+)["']/i)
+  const url = iframeMatch ? iframeMatch[1].trim() : raw
+
+  if (url && (url.includes('/maps/embed') || url.includes('output=embed'))) {
+    return url
+  }
+
+  // Jika user menempelkan link Google Maps biasa atau alamat teks, konversi ke embed search q=
+  if (url) {
+    // Cek koordinat @lat,lng di URL Google Maps
+    const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+    if (coordMatch) {
+      return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&z=16&output=embed`
+    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return `https://maps.google.com/maps?q=${encodeURIComponent(url)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+    }
+  }
+
+  if (fallbackAddress.trim()) {
+    return `https://maps.google.com/maps?q=${encodeURIComponent(fallbackAddress.trim())}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+  }
+
+  return 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3955.5188824194096!2d112.23594837582498!3d-7.518174574187053!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e783ffc47f75eb3%3A0xa61feea2d0bba6f7!2sPondok%20Pesantren%20Bahrul%20Ulum%20Tambakberas%20Jombang!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid'
+}
+
+export const DEFAULT_LOCATION_CONFIG: EventLocationConfig = {
+  section_title: 'Peta Lokasi Penyelenggaraan Acara',
+  section_subtitle: "Panduan geografis kompleks pondok pesantren Bahrul 'Ulum Tambakberas, Jombang, Jawa Timur dan akses penjemputan jamaah.",
+  main_map_title: 'Titik Pusat Lokasi:',
+  main_address: "Kompleks Pondok Pesantren Bahrul 'Ulum Tambakberas, Jl. KH. Wahab Chasbullah, Tambakrejo, Kec. Jombang, Kabupaten Jombang, Jawa Timur 61451.",
+  google_maps_embed_url: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3955.5188824194096!2d112.23594837582498!3d-7.518174574187053!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e783ffc47f75eb3%3A0xa61feea2d0bba6f7!2sPondok%20Pesantren%20Bahrul%20Ulum%20Tambakberas%20Jombang!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid',
+  google_maps_link_url: 'https://maps.google.com/?q=Pondok+Pesantren+Bahrul+Ulum+Tambakberas+Jombang'
+}
+
+export const DEFAULT_LOCATION_POINTS: LocationPoint[] = [
+  {
+    id: 1,
+    title: 'Akses Dari Stasiun Jombang (JG)',
+    badge: 'Akses Rute',
+    address: 'Jarak sekitar 3,5 KM ke utara dari Stasiun Kereta Api Jombang. Waktu tempuh sekitar 10 menit menggunakan transportasi roda empat atau armada panitia ke Kompleks Tambakberas.',
+    maps_url: 'https://maps.google.com/?q=Stasiun+Jombang',
+    is_dark: false
+  },
+  {
+    id: 2,
+    title: 'Akses Dari Gerbang Tol Jombang',
+    badge: 'Akses Rute',
+    address: 'Keluar melalui Exit Tol Jombang (Tembelang). Lanjutkan perjalanan ke arah selatan melalui Jl. Raya Ploso–Jombang sekitar 15 menit menuju arena acara.',
+    maps_url: 'https://maps.google.com/?q=Gerbang+Tol+Jombang+Tembelang',
+    is_dark: false
+  },
+  {
+    id: 3,
+    title: 'Pelayanan Parkir & Pengawalan',
+    badge: 'Parkir & Keamanan',
+    address: 'Area kantong parkir disiapkan di beberapa titik strategis di sekitar pondok dengan petunjuk petugas keamanan panitia & Banser.',
+    maps_url: 'https://maps.google.com/?q=Pondok+Pesantren+Bahrul+Ulum+Tambakberas+Jombang',
+    is_dark: true
+  }
+]
 
 export const DEFAULT_GUIDE_CATEGORIES: string[] = [
   'Penginapan',
@@ -246,12 +334,12 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     persistGuideCategories()
   }
 
-  // Load Guide Items
+  // Load Guide Items (izinkan array kosong [] jika admin memang menghapus semua item)
   const savedGuides = typeof window !== 'undefined' ? localStorage.getItem(GUIDE_STORAGE_KEY) : null
-  if (savedGuides) {
+  if (savedGuides !== null) {
     try {
       const parsed = JSON.parse(savedGuides)
-      guideItems.value = Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_GUIDE_ITEMS
+      guideItems.value = Array.isArray(parsed) ? parsed : DEFAULT_GUIDE_ITEMS
     } catch {
       guideItems.value = DEFAULT_GUIDE_ITEMS
     }
@@ -261,11 +349,15 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
 
   function persistGuideItems() {
     if (typeof window !== 'undefined') {
+      const raw = JSON.parse(JSON.stringify(guideItems.value))
+      idbSet(GUIDE_STORAGE_KEY, raw).catch(() => {})
       try {
-        localStorage.setItem(GUIDE_STORAGE_KEY, JSON.stringify(guideItems.value))
+        localStorage.setItem(GUIDE_STORAGE_KEY, JSON.stringify(raw))
       } catch (e) {
         console.warn('LocalStorage error saving guide items:', e)
       }
+      window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
+      broadcastSync('tabarukan')
     }
   }
 
@@ -301,12 +393,12 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     persistGuideItems()
   }
 
-  // Load Tabarukan Items
+  // Load Tabarukan Items (izinkan array kosong [] jika admin menghapus semua item)
   const savedTabarukan = typeof window !== 'undefined' ? localStorage.getItem(TABARUKAN_STORAGE_KEY) : null
-  if (savedTabarukan) {
+  if (savedTabarukan !== null) {
     try {
       const parsed = JSON.parse(savedTabarukan)
-      tabarukanItems.value = Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TABARUKAN_ITEMS
+      tabarukanItems.value = Array.isArray(parsed) ? parsed : DEFAULT_TABARUKAN_ITEMS
     } catch {
       tabarukanItems.value = DEFAULT_TABARUKAN_ITEMS
     }
@@ -316,11 +408,23 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
 
   function persistTabarukan() {
     if (typeof window !== 'undefined') {
+      const raw = JSON.parse(JSON.stringify(tabarukanItems.value))
+      // Simpan lengkap ke IndexedDB agar foto base64 & daftar terhapus selalu awet
+      idbSet(TABARUKAN_STORAGE_KEY, raw).catch(() => {})
       try {
-        localStorage.setItem(TABARUKAN_STORAGE_KEY, JSON.stringify(tabarukanItems.value))
+        localStorage.setItem(TABARUKAN_STORAGE_KEY, JSON.stringify(raw))
       } catch (e) {
-        console.warn('LocalStorage error saving tabarukan items:', e)
+        console.warn('LocalStorage quota penuh saat simpan tabarukan, gunakan versi ringkas:', e)
+        try {
+          const minimal = raw.map((t: TabarukanItem) => ({
+            ...t,
+            image_url: t.image_url?.startsWith('data:') ? '' : (t.image_url || '')
+          }))
+          localStorage.setItem(TABARUKAN_STORAGE_KEY, JSON.stringify(minimal))
+        } catch {}
       }
+      window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
+      broadcastSync('tabarukan')
     }
   }
 
@@ -353,12 +457,12 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     persistTabarukan()
   }
 
-  // Load CP List
+  // Load CP List (izinkan array kosong [] jika admin menghapus semua item)
   const savedCP = typeof window !== 'undefined' ? localStorage.getItem(CP_STORAGE_KEY) : null
-  if (savedCP) {
+  if (savedCP !== null) {
     try {
       const parsed = JSON.parse(savedCP)
-      cpList.value = Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CP_ITEMS
+      cpList.value = Array.isArray(parsed) ? parsed : DEFAULT_CP_ITEMS
     } catch {
       cpList.value = DEFAULT_CP_ITEMS
     }
@@ -368,11 +472,15 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
 
   function persistCP() {
     if (typeof window !== 'undefined') {
+      const raw = JSON.parse(JSON.stringify(cpList.value))
+      idbSet(CP_STORAGE_KEY, raw).catch(() => {})
       try {
-        localStorage.setItem(CP_STORAGE_KEY, JSON.stringify(cpList.value))
+        localStorage.setItem(CP_STORAGE_KEY, JSON.stringify(raw))
       } catch (e) {
         console.warn('LocalStorage error saving CP items:', e)
       }
+      window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
+      broadcastSync('tabarukan')
     }
   }
 
@@ -404,6 +512,161 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     persistCP()
   }
 
+  // ============================================================
+  // PETA & TITIK LOKASI ACARA (CUSTOM GOOGLE MAPS & BAGAN)
+  // ============================================================
+  const locationConfig = ref<EventLocationConfig>({ ...DEFAULT_LOCATION_CONFIG })
+  const savedLocCfg = typeof window !== 'undefined' ? localStorage.getItem(LOCATION_CONFIG_KEY) : null
+  if (savedLocCfg) {
+    try {
+      const parsed = JSON.parse(savedLocCfg)
+      if (parsed && typeof parsed === 'object') {
+        locationConfig.value = { ...DEFAULT_LOCATION_CONFIG, ...parsed }
+      }
+    } catch {}
+  }
+
+  const locationPoints = ref<LocationPoint[]>([])
+  const savedLocPts = typeof window !== 'undefined' ? localStorage.getItem(LOCATION_POINTS_KEY) : null
+  if (savedLocPts !== null) {
+    try {
+      const parsed = JSON.parse(savedLocPts)
+      locationPoints.value = Array.isArray(parsed) ? parsed : [...DEFAULT_LOCATION_POINTS]
+    } catch {
+      locationPoints.value = [...DEFAULT_LOCATION_POINTS]
+    }
+  } else {
+    locationPoints.value = [...DEFAULT_LOCATION_POINTS]
+  }
+
+  function persistLocationConfig() {
+    if (typeof window !== 'undefined') {
+      const raw = JSON.parse(JSON.stringify(locationConfig.value))
+      idbSet(LOCATION_CONFIG_KEY, raw).catch(() => {})
+      try {
+        localStorage.setItem(LOCATION_CONFIG_KEY, JSON.stringify(raw))
+      } catch {}
+      window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
+      broadcastSync('tabarukan')
+    }
+  }
+
+  function persistLocationPoints() {
+    if (typeof window !== 'undefined') {
+      const raw = JSON.parse(JSON.stringify(locationPoints.value))
+      idbSet(LOCATION_POINTS_KEY, raw).catch(() => {})
+      try {
+        localStorage.setItem(LOCATION_POINTS_KEY, JSON.stringify(raw))
+      } catch {
+        try {
+          const minimal = raw.map((p: LocationPoint) => ({
+            ...p,
+            image_url: p.image_url?.startsWith('data:') ? '' : (p.image_url || '')
+          }))
+          localStorage.setItem(LOCATION_POINTS_KEY, JSON.stringify(minimal))
+        } catch {}
+      }
+      window.dispatchEvent(new CustomEvent('tabarukan-store-updated'))
+      broadcastSync('tabarukan')
+    }
+  }
+
+  function saveLocationConfig(cfg: Partial<EventLocationConfig>) {
+    locationConfig.value = {
+      ...locationConfig.value,
+      ...cfg
+    }
+    persistLocationConfig()
+    return true
+  }
+
+  function saveLocationPoint(point: Partial<LocationPoint>) {
+    if (point.id) {
+      const idx = locationPoints.value.findIndex(p => p.id === point.id)
+      if (idx !== -1) {
+        locationPoints.value[idx] = { ...locationPoints.value[idx], ...point }
+      }
+    } else {
+      const newPoint: LocationPoint = {
+        id: Date.now(),
+        title: point.title || 'Titik Lokasi Acara',
+        badge: point.badge || 'Lokasi Acara',
+        address: point.address || '',
+        maps_url: point.maps_url || '',
+        image_url: point.image_url || '',
+        is_dark: !!point.is_dark
+      }
+      locationPoints.value.push(newPoint)
+    }
+    persistLocationPoints()
+    return true
+  }
+
+  function deleteLocationPoint(id: number) {
+    locationPoints.value = locationPoints.value.filter(p => p.id !== id)
+    persistLocationPoints()
+  }
+
+  function resetLocationDefaults() {
+    locationConfig.value = { ...DEFAULT_LOCATION_CONFIG }
+    locationPoints.value = [...DEFAULT_LOCATION_POINTS]
+    persistLocationConfig()
+    persistLocationPoints()
+  }
+
+  // Muat salinan lengkap dari IndexedDB saat startup & sinkronkan antar-tab
+  if (typeof window !== 'undefined') {
+    idbGet<GuideInfoItem[]>(GUIDE_STORAGE_KEY).then(d => {
+      if (Array.isArray(d)) guideItems.value = d
+    }).catch(() => {})
+
+    idbGet<TabarukanItem[]>(TABARUKAN_STORAGE_KEY).then(d => {
+      if (Array.isArray(d)) tabarukanItems.value = d
+    }).catch(() => {})
+
+    idbGet<SecretariatContact[]>(CP_STORAGE_KEY).then(d => {
+      if (Array.isArray(d)) cpList.value = d
+    }).catch(() => {})
+
+    idbGet<EventLocationConfig>(LOCATION_CONFIG_KEY).then(d => {
+      if (d && typeof d === 'object') locationConfig.value = { ...DEFAULT_LOCATION_CONFIG, ...d }
+    }).catch(() => {})
+
+    idbGet<LocationPoint[]>(LOCATION_POINTS_KEY).then(d => {
+      if (Array.isArray(d)) locationPoints.value = d
+    }).catch(() => {})
+
+    onSyncBroadcast('tabarukan', () => {
+      idbGet<GuideInfoItem[]>(GUIDE_STORAGE_KEY).then(d => { if (Array.isArray(d)) guideItems.value = d }).catch(() => {})
+      idbGet<TabarukanItem[]>(TABARUKAN_STORAGE_KEY).then(d => { if (Array.isArray(d)) tabarukanItems.value = d }).catch(() => {})
+      idbGet<SecretariatContact[]>(CP_STORAGE_KEY).then(d => { if (Array.isArray(d)) cpList.value = d }).catch(() => {})
+      idbGet<EventLocationConfig>(LOCATION_CONFIG_KEY).then(d => { if (d && typeof d === 'object') locationConfig.value = { ...DEFAULT_LOCATION_CONFIG, ...d } }).catch(() => {})
+      idbGet<LocationPoint[]>(LOCATION_POINTS_KEY).then(d => { if (Array.isArray(d)) locationPoints.value = d }).catch(() => {})
+    })
+
+    window.addEventListener('storage', (e) => {
+      if (!e.newValue) return
+      try {
+        if (e.key === GUIDE_STORAGE_KEY) {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) guideItems.value = parsed
+        } else if (e.key === TABARUKAN_STORAGE_KEY) {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) tabarukanItems.value = parsed
+        } else if (e.key === CP_STORAGE_KEY) {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) cpList.value = parsed
+        } else if (e.key === LOCATION_CONFIG_KEY) {
+          const parsed = JSON.parse(e.newValue)
+          if (parsed && typeof parsed === 'object') locationConfig.value = { ...DEFAULT_LOCATION_CONFIG, ...parsed }
+        } else if (e.key === LOCATION_POINTS_KEY) {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) locationPoints.value = parsed
+        }
+      } catch {}
+    })
+  }
+
   // Aliases for compatibility
   const customCategories = guideCategories
   const allCategories = guideCategories
@@ -418,6 +681,8 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     guideCategories,
     customCategories,
     allCategories,
+    locationConfig,
+    locationPoints,
     addGuideCategory,
     deleteGuideCategory,
     resetGuideCategories,
@@ -429,6 +694,10 @@ export const useTabarukanStore = defineStore('tabarukan', () => {
     saveTabarukanItem,
     deleteTabarukanItem,
     saveCP,
-    deleteCP
+    deleteCP,
+    saveLocationConfig,
+    saveLocationPoint,
+    deleteLocationPoint,
+    resetLocationDefaults
   }
 })

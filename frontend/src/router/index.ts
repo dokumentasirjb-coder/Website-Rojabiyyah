@@ -66,11 +66,11 @@ const routes: RouteRecordRaw[] = [
   // CMS AUTHENTICATION & ADMIN
   // ============================================================
   {
-    path: '/login',
+    path: '/panel-panitia',
     name: 'login',
     component: () => import('@/views/LoginView.vue'),
     meta: {
-      title: 'Masuk — CMS Muktamar NU',
+      title: 'Masuk — Dashboard Admin Panitia Rojabiyyah',
       guestOnly: true,
     },
   },
@@ -132,10 +132,10 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('admin_token')
   if (to.meta.requiresAuth && !token) {
-    return next({ path: '/login', query: { redirect: to.fullPath } })
+    return next({ path: '/panel-panitia', query: { redirect: to.fullPath } })
   }
   if (to.meta.guestOnly && token) {
-    return next('/admin/articles')
+    return next('/admin/content')
   }
   if (to.meta.title) {
     document.title = to.meta.title as string

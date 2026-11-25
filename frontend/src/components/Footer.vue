@@ -47,7 +47,7 @@ function handleNav(targetPath: string) {
               <img
                 :src="settingsStore.settings.logo_image_url"
                 :alt="settingsStore.settings.site_title || 'Logo'"
-                class="h-full w-auto max-w-[130px] object-contain drop-shadow-sm"
+                class="h-full w-auto max-w-[130px] object-contain drop-shadow-sm mix-blend-screen"
               />
             </div>
 
@@ -270,7 +270,7 @@ function handleNav(targetPath: string) {
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
         <div>
-          &copy; {{ new Date().getFullYear() }} <strong>{{ settingsStore.settings.footer_copyright || 'Perkumpulan Nahdlatul Ulama' }}</strong>. Seluruh Hak Cipta Dilindungi.
+          &copy; {{ new Date().getFullYear() }} <strong>{{ (settingsStore.settings.footer_copyright && settingsStore.settings.footer_copyright !== 'Perkumpulan Nahdlatul Ulama') ? settingsStore.settings.footer_copyright : 'Panitia Rojabiyyah' }}</strong>. Seluruh Hak Cipta Dilindungi.
         </div>
 
         <div class="flex items-center gap-4 text-slate-400">

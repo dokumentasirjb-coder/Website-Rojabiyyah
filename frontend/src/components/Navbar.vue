@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Shield, Menu, X } from 'lucide-vue-next'
+import { Menu, X } from 'lucide-vue-next'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useSettingsStore } from '@/stores/settingsStore'
 
@@ -78,6 +78,7 @@ function navigateTo(targetPath: string) {
               :src="settingsStore.settings.logo_image_url"
               :alt="settingsStore.settings.site_title || 'Logo'"
               class="h-full w-auto max-w-[140px] object-contain drop-shadow-xs"
+              :class="isDarkNavbar ? 'mix-blend-screen' : ''"
             />
           </div>
 
@@ -194,29 +195,10 @@ function navigateTo(targetPath: string) {
           >
             Informasi Umum
           </button>
-
-          <RouterLink
-            to="/admin/settings"
-            class="inline-flex items-center gap-1 text-[11px] font-semibold transition-colors ml-2"
-            :class="[isDarkNavbar ? 'text-white/85 hover:text-white bg-white/15 px-2.5 py-1 rounded-lg' : 'text-slate-400 hover:text-[#008f8a]']"
-            title="Kelola Konten di CMS"
-          >
-            <Shield class="w-3.5 h-3.5" />
-            <span>CMS</span>
-          </RouterLink>
         </nav>
 
         <!-- Mobile Hamburger Button -->
         <div class="flex items-center gap-2 md:hidden">
-          <RouterLink
-            to="/admin/settings"
-            class="p-2 rounded-xl transition-colors"
-            :class="[isDarkNavbar ? 'text-white/80 hover:text-white' : 'text-slate-400 hover:text-[#008f8a]']"
-            title="CMS"
-          >
-            <Shield class="w-4 h-4" />
-          </RouterLink>
-
           <button
             type="button"
             @click="isMobileMenuOpen = !isMobileMenuOpen"
@@ -325,18 +307,9 @@ function navigateTo(targetPath: string) {
       </button>
 
       <div 
-        class="pt-3 border-t flex items-center justify-between px-2 text-xs"
+        class="pt-3 border-t flex items-center justify-end px-2 text-xs"
         :class="[isDarkNavbar ? 'border-white/10 text-white/70' : 'border-slate-100 text-slate-500']"
       >
-        <RouterLink
-          to="/admin/settings"
-          @click="isMobileMenuOpen = false"
-          class="inline-flex items-center gap-1.5 font-bold"
-          :class="[isDarkNavbar ? 'text-white hover:underline' : 'text-[#008f8a]']"
-        >
-          <Shield class="w-4 h-4" />
-          <span>Panel Admin CMS</span>
-        </RouterLink>
         <span>Jombang 2026</span>
       </div>
     </div>

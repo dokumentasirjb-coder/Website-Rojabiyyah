@@ -1,14 +1,7 @@
 <script setup lang="ts">
-import { ArrowRight } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settingsStore'
 
-const router = useRouter()
 const settingsStore = useSettingsStore()
-
-function goTo(path: string) {
-  router.push(path)
-}
 </script>
 
 <template>
@@ -44,25 +37,6 @@ function goTo(path: string) {
         <p class="text-xs sm:text-base text-slate-700 font-medium leading-relaxed max-w-md pt-1 sm:pt-2">
           {{ settingsStore.settings.hero_tagline || 'Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa' }}
         </p>
-
-        <!-- Action Links to Dedicated Pages -->
-        <div class="pt-3 sm:pt-4 flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-semibold">
-          <button
-            type="button"
-            @click="goTo('/tentang')"
-            class="text-[#008f8a] hover:underline flex items-center gap-1 cursor-pointer py-1"
-          >
-            <span>Tentang Muktamar</span>
-            <ArrowRight class="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            @click="goTo('/agenda')"
-            class="text-slate-600 hover:text-slate-900 cursor-pointer py-1"
-          >
-            <span>Lihat Jadwal Agenda &rarr;</span>
-          </button>
-        </div>
       </div>
     </div>
   </div>

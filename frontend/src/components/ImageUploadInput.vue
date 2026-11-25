@@ -53,6 +53,18 @@ function handleDrop(event: DragEvent) {
 
 function processImageFile(file: File) {
   errorMsg.value = null
+
+  if (!file.type.startsWith('image/')) {
+    errorMsg.value = 'Format file tidak didukung. Gunakan foto JPG, PNG, WebP, atau SVG.'
+    return
+  }
+
+  const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
+  if (file.size > MAX_SIZE_BYTES) {
+    errorMsg.value = 'Ukuran foto terlalu besar (maksimal 10 MB). Pilih foto yang lebih kecil.'
+    return
+  }
+
   isProcessing.value = true
 
   const reader = new FileReader()
@@ -215,13 +227,21 @@ function removeImage() {
       </div>
       <div>
         <span class="text-xs font-bold text-white block">
-          Klik untuk Unggah Foto dari Komputer
+          {{ isProcessing ? 'Sedang memproses & mengompres foto...' : 'Klik untuk Unggah Foto dari Komputer' }}
         </span>
         <span class="text-[11px] text-slate-400 block mt-0.5">
           atau seret dan lepaskan file gambar ke sini (JPG, PNG, WebP)
         </span>
+        <span class="text-[10px] text-emerald-400/90 font-medium block mt-1.5">
+          {{ description || 'Ukuran disarankan: minimal 100 KB – 2 MB (maks. 10 MB, otomatis dikompres).' }}
+        </span>
       </div>
     </div>
+
+    <!-- Info ukuran & deskripsi saat foto sudah terpasang -->
+    <p v-if="modelValue && description" class="text-[10px] text-slate-400">
+      {{ description }}
+    </p>
 
     <!-- Optional URL input toggle -->
     <div v-if="showUrlInput" class="pt-1">

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('v1')->name('api.v1.')->group(function () {
+Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function () {
 
     // ============================================================
     // 1. PUBLIC ROUTES (Halaman Depan & Pembaca)
@@ -31,9 +31,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/settings', [SiteSettingController::class, 'index'])->name('settings.index');
 
     // ============================================================
-    // 2. AUTHENTICATION (Sanctum Bearer Token)
+    // 2. AUTHENTICATION (Sanctum Bearer Token + Throttle Login)
     // ============================================================
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:login')
+        ->name('login');
 
     // ============================================================
     // 3. ADMIN CMS PROTECTED ROUTES (auth:sanctum)

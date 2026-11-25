@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { DownloadCloud, FileText, Image as ImageIcon, Video, ExternalLink, Sparkles } from 'lucide-vue-next'
+import { useUiStore } from '@/stores/uiStore'
+
+const uiStore = useUiStore()
 
 const downloadItems = [
   {
@@ -51,7 +54,7 @@ const galleryMoments = [
 ]
 
 function handleDownload(title: string) {
-  alert(`Mengunduh dokumen: "${title}". File sedang dipersiapkan.`);
+  uiStore.notify(`Mengunduh dokumen: "${title}". File sedang dipersiapkan.`, 'info')
 }
 </script>
 

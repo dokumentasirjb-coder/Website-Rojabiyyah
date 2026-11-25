@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/lib/axios'
+import api, { isApiOffline } from '@/lib/axios'
+import { idbGet, idbSet } from '@/lib/idb'
+import { broadcastSync, onSyncBroadcast } from '@/lib/syncChannel'
 import type { SiteSettings, GalleryPhoto, GalleryAlbum, GalleryPhotoItem, ScheduleDay, AboutStructureItem, AboutParagraphItem } from '@/types'
 
 export const DEFAULT_ABOUT_STRUCTURE_ITEMS: AboutStructureItem[] = [
@@ -516,59 +518,80 @@ export function applyTheme(s: Partial<SiteSettings>) {
       --site-footer-bottom-bg: ${footerBottomBg};
       --site-navbar-bg: ${navbarBg};
     }
-    .bg-\\[\\#008f8a\\] { background-color: ${primary} !important; }
-    .hover\\:bg-\\[\\#007a75\\]:hover, .hover\\:bg-\\[\\#007a76\\]:hover { background-color: ${primaryHover} !important; }
-    .text-\\[\\#008f8a\\] { color: ${primary} !important; }
-    .hover\\:text-\\[\\#008f8a\\]:hover { color: ${primary} !important; }
-    .border-\\[\\#008f8a\\] { border-color: ${primary} !important; }
-    .ring-\\[\\#008f8a\\] { --tw-ring-color: ${primary} !important; }
-    .fill-\\[\\#008f8a\\] { fill: ${primary} !important; }
-    .stroke-\\[\\#008f8a\\] { stroke: ${primary} !important; }
-    .from-\\[\\#008f8a\\] { --tw-gradient-from: ${primary} !important; }
-    .to-\\[\\#008f8a\\] { --tw-gradient-to: ${primary} !important; }
+    .bg-\\[\\#008f8a\\]:not(.admin-shell *) { background-color: ${primary} !important; }
+    .hover\\:bg-\\[\\#007a75\\]:not(.admin-shell *):hover, .hover\\:bg-\\[\\#007a76\\]:not(.admin-shell *):hover { background-color: ${primaryHover} !important; }
+    .text-\\[\\#008f8a\\]:not(.admin-shell *) { color: ${primary} !important; }
+    .hover\\:text-\\[\\#008f8a\\]:not(.admin-shell *):hover { color: ${primary} !important; }
+    .border-\\[\\#008f8a\\]:not(.admin-shell *) { border-color: ${primary} !important; }
+    .ring-\\[\\#008f8a\\]:not(.admin-shell *) { --tw-ring-color: ${primary} !important; }
+    .fill-\\[\\#008f8a\\]:not(.admin-shell *) { fill: ${primary} !important; }
+    .stroke-\\[\\#008f8a\\]:not(.admin-shell *) { stroke: ${primary} !important; }
+    .from-\\[\\#008f8a\\]:not(.admin-shell *) { --tw-gradient-from: ${primary} !important; }
+    .to-\\[\\#008f8a\\]:not(.admin-shell *) { --tw-gradient-to: ${primary} !important; }
 
     /* Secondary */
-    .text-\\[\\#006432\\] { color: ${secondary} !important; }
-    .bg-\\[\\#006432\\] { background-color: ${secondary} !important; }
-    .from-\\[\\#006432\\] { --tw-gradient-from: ${secondary} !important; }
-    .to-\\[\\#006432\\] { --tw-gradient-to: ${secondary} !important; }
+    .text-\\[\\#006432\\]:not(.admin-shell *) { color: ${secondary} !important; }
+    .bg-\\[\\#006432\\]:not(.admin-shell *) { background-color: ${secondary} !important; }
+    .from-\\[\\#006432\\]:not(.admin-shell *) { --tw-gradient-from: ${secondary} !important; }
+    .to-\\[\\#006432\\]:not(.admin-shell *) { --tw-gradient-to: ${secondary} !important; }
 
     /* Accent */
-    .stroke-\\[\\#b38856\\], .text-\\[\\#b38856\\], .border-\\[\\#b38856\\] {
+    .stroke-\\[\\#b38856\\]:not(.admin-shell *), .text-\\[\\#b38856\\]:not(.admin-shell *), .border-\\[\\#b38856\\]:not(.admin-shell *) {
       stroke: ${accent} !important;
       color: ${accent} !important;
       border-color: ${accent} !important;
     }
 
     /* Box Footer Overrides */
-    .bg-\\[\\#111827\\] {
+    .bg-\\[\\#111827\\]:not(.admin-shell *) {
       background-color: var(--site-footer-bg) !important;
     }
-    .bg-slate-950 {
+    .bg-slate-950:not(.admin-shell *) {
       background-color: var(--site-footer-bottom-bg) !important;
     }
   `
 }
 
 const STORAGE_KEY = 'muktamar_site_settings_v4'
+const IDB_SETTINGS_KEY = 'site_settings_v4'
+
+function mergeParsedSettings(parsed: Partial<SiteSettings>): SiteSettings {
+  const merged: SiteSettings = { ...DEFAULT_SETTINGS, ...parsed }
+  if (merged.agenda_schedules_json === undefined || merged.agenda_schedules_json === null) {
+    merged.agenda_schedules_json = DEFAULT_SCHEDULE_DAYS
+  }
+  if (!merged.gallery_albums_json || !Array.isArray(merged.gallery_albums_json) || merged.gallery_albums_json.length === 0) {
+    merged.gallery_albums_json = DEFAULT_GALLERY_ALBUMS
+  }
+  return merged
+}
 
 export const useSettingsStore = defineStore('settings', () => {
   const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('muktamar_site_settings_v3')
   let parsedSettings: SiteSettings = { ...DEFAULT_SETTINGS }
   if (saved) {
     try {
-      const parsed = JSON.parse(saved)
-      parsedSettings = { ...DEFAULT_SETTINGS, ...parsed }
-      if (parsedSettings.agenda_schedules_json === undefined || parsedSettings.agenda_schedules_json === null) {
-        parsedSettings.agenda_schedules_json = DEFAULT_SCHEDULE_DAYS
-      }
-      if (!parsedSettings.gallery_albums_json || !Array.isArray(parsedSettings.gallery_albums_json) || parsedSettings.gallery_albums_json.length === 0) {
-        parsedSettings.gallery_albums_json = DEFAULT_GALLERY_ALBUMS
-      }
+      parsedSettings = mergeParsedSettings(JSON.parse(saved))
     } catch {}
   }
   const settings = ref<SiteSettings>(parsedSettings)
   applyTheme(settings.value)
+
+  // Prioritaskan IndexedDB karena kapasitas jauh lebih besar (banner & foto galeri base64)
+  const initPromise = (async () => {
+    try {
+      const idbData = await idbGet<Partial<SiteSettings>>(IDB_SETTINGS_KEY)
+      if (idbData && typeof idbData === 'object') {
+        settings.value = mergeParsedSettings(idbData)
+        applyTheme(settings.value)
+        if (settings.value.favicon_url) {
+          applyFavicon(settings.value.favicon_url)
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat settings dari IndexedDB:', err)
+    }
+  })()
   
   const isLoading = ref(false)
   const isSaving = ref(false)
@@ -587,48 +610,96 @@ export const useSettingsStore = defineStore('settings', () => {
     link.href = url
   }
 
-  function saveLocal() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings.value))
+  async function saveLocal() {
+    // 1. Simpan utuh ke IndexedDB (tidak terkena batas kuota 5MB localStorage)
+    try {
+      await idbSet(IDB_SETTINGS_KEY, JSON.parse(JSON.stringify(settings.value)))
+    } catch (err) {
+      console.warn('Gagal menyimpan settings ke IndexedDB:', err)
+    }
+
+    // 2. Simpan ke localStorage sebagai cache cepat (dengan pengaman kuota)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings.value))
+    } catch {
+      try {
+        // Jika penuh karena foto base64 galeri, simpan versi ringan tanpa base64 galeri di localStorage
+        const lite: any = { ...settings.value }
+        if (Array.isArray(lite.gallery_albums_json)) {
+          lite.gallery_albums_json = lite.gallery_albums_json.map((alb: any) => ({
+            ...alb,
+            cover_image: typeof alb.cover_image === 'string' && alb.cover_image.startsWith('data:image/') ? '' : alb.cover_image,
+            photos: (alb.photos || []).map((p: any) => ({
+              ...p,
+              src: typeof p.src === 'string' && p.src.startsWith('data:image/') ? '' : p.src
+            }))
+          }))
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(lite))
+      } catch {
+        // IndexedDB tetap menyimpan data lengkap
+      }
+    }
+
     if (settings.value.favicon_url) {
       applyFavicon(settings.value.favicon_url)
     }
     applyTheme(settings.value)
+    broadcastSync('settings')
   }
 
+  let inFlightSettingsFetch: Promise<void> | null = null
+
   async function fetchSettings() {
-    isLoading.value = true
-    error.value = null
-    try {
-      const response = await api.get<{ success: boolean; data: SiteSettings }>('/settings')
-      if (response.data?.data) {
-        settings.value = { ...settings.value, ...response.data.data }
-        saveLocal()
-      }
-    } catch {
-      // Graceful fallback: use local/defaults if API offline
-    } finally {
-      isLoading.value = false
-      if (settings.value.favicon_url) {
-        applyFavicon(settings.value.favicon_url)
-      }
+    await initPromise
+    if (isApiOffline()) {
+      if (settings.value.favicon_url) applyFavicon(settings.value.favicon_url)
       applyTheme(settings.value)
+      return
     }
+    if (inFlightSettingsFetch) {
+      return inFlightSettingsFetch
+    }
+
+    inFlightSettingsFetch = (async () => {
+      isLoading.value = true
+      error.value = null
+      try {
+        const response = await api.get<{ success: boolean; data: SiteSettings }>('/settings')
+        if (response.data?.data) {
+          settings.value = mergeParsedSettings({ ...settings.value, ...response.data.data })
+          await saveLocal()
+        }
+      } catch {
+        // Graceful fallback: use local/IndexedDB if API offline
+      } finally {
+        isLoading.value = false
+        inFlightSettingsFetch = null
+        if (settings.value.favicon_url) {
+          applyFavicon(settings.value.favicon_url)
+        }
+        applyTheme(settings.value)
+      }
+    })()
+
+    return inFlightSettingsFetch
   }
 
   async function updateSettings(updatedData: Partial<SiteSettings>): Promise<{ success: boolean; message?: string }> {
+    await initPromise
     isSaving.value = true
     error.value = null
     successMessage.value = null
 
     settings.value = { ...settings.value, ...updatedData }
-    saveLocal()
+    await saveLocal()
     applyTheme(settings.value)
 
     try {
       const response = await api.post<{ success: boolean; message: string; data: SiteSettings }>('/admin/settings', updatedData)
       if (response.data?.data) {
-        settings.value = { ...settings.value, ...response.data.data }
-        saveLocal()
+        settings.value = mergeParsedSettings({ ...settings.value, ...response.data.data })
+        await saveLocal()
       }
       successMessage.value = 'Pengaturan situs berhasil disimpan!'
       return { success: true, message: successMessage.value }
@@ -640,11 +711,38 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  function resetToDefault() {
+  async function resetToDefault() {
     settings.value = { ...DEFAULT_SETTINGS }
-    saveLocal()
+    await saveLocal()
     applyTheme(settings.value)
     successMessage.value = 'Pengaturan berhasil dikembalikan ke standar awal.'
+  }
+
+  async function reloadFromIdb() {
+    try {
+      const idbData = await idbGet<Partial<SiteSettings>>(IDB_SETTINGS_KEY)
+      if (idbData && typeof idbData === 'object') {
+        settings.value = mergeParsedSettings(idbData)
+        applyTheme(settings.value)
+        if (settings.value.favicon_url) {
+          applyFavicon(settings.value.favicon_url)
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    onSyncBroadcast('settings', () => {
+      reloadFromIdb()
+    })
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        reloadFromIdb()
+      }
+    })
   }
 
   return {

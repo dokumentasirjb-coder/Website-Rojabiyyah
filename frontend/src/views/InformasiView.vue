@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
 import { 
   useTabarukanStore, 
+  normalizeGoogleMapsEmbedUrl,
   type GuideInfoItem, 
   type TabarukanItem, 
   type SecretariatContact 
@@ -308,7 +309,7 @@ onMounted(() => {
               <span>Cinderamata & Berkah Khidmah</span>
             </div>
             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-slate-900 leading-snug">
-              Katalog Tabarukan Haul & Rojabiyyah
+              Tabbarukan Haul &amp; Marchedise Haul
             </h2>
             <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
               Produk dan cinderamata resmi panitia berformat Feed Instagram persegi 1:1. Seluruh infaq dialokasikan untuk khidmah peringatan Haul Abah & Rojabiyyah.
@@ -456,13 +457,13 @@ onMounted(() => {
           <div class="max-w-2xl mb-12">
             <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
               <MapPin class="w-4 h-4 text-[#008f8a]" />
-              <span>Panduan Rute & Transportasi</span>
+              <span>Panduan Rute &amp; Transportasi</span>
             </div>
             <h2 class="text-2xl sm:text-4xl font-serif font-bold text-slate-900 tracking-tight">
-              Peta Lokasi Penyelenggaraan Acara
+              {{ tabarukanStore.locationConfig.section_title || 'Peta Lokasi Penyelenggaraan Acara' }}
             </h2>
             <p class="text-xs sm:text-sm text-slate-600 mt-2 font-normal leading-relaxed">
-              Panduan geografis kompleks pondok pesantren Bahrul 'Ulum Tambakberas, Jombang, Jawa Timur dan akses penjemputan jamaah.
+              {{ tabarukanStore.locationConfig.section_subtitle }}
             </p>
           </div>
 
@@ -471,8 +472,8 @@ onMounted(() => {
             <div class="lg:col-span-7 rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-sm space-y-4 p-4">
               <div class="relative w-full h-[360px] sm:h-[420px] rounded-2xl overflow-hidden bg-slate-200">
                 <iframe
-                  title="Peta Lokasi Pesantren Bahrul Ulum Tambakberas"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3955.5188824194096!2d112.23594837582498!3d-7.518174574187053!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e783ffc47f75eb3%3A0xa61feea2d0bba6f7!2sPondok%20Pesantren%20Bahrul%20Ulum%20Tambakberas%20Jombang!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
+                  :title="tabarukanStore.locationConfig.main_map_title || 'Peta Lokasi Acara'"
+                  :src="normalizeGoogleMapsEmbedUrl(tabarukanStore.locationConfig.google_maps_embed_url, tabarukanStore.locationConfig.main_address)"
                   width="100%"
                   height="100%"
                   style="border:0;"
@@ -482,45 +483,97 @@ onMounted(() => {
                   class="w-full h-full"
                 ></iframe>
               </div>
-              <div class="flex items-center gap-2 text-xs text-slate-600 px-2">
-                <MapPin class="w-4 h-4 text-[#008f8a] shrink-0" />
-                <div>
-                  <strong class="text-slate-900 block font-bold">Titik Pusat Lokasi:</strong>
-                  <span>Kompleks Pondok Pesantren Bahrul 'Ulum Tambakberas, Jl. KH. Wahab Chasbullah, Tambakrejo, Kec. Jombang, Kabupaten Jombang, Jawa Timur 61451.</span>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2">
+                <div class="flex items-start gap-2 text-xs text-slate-600">
+                  <MapPin class="w-4 h-4 text-[#008f8a] shrink-0 mt-0.5" />
+                  <div>
+                    <strong class="text-slate-900 block font-bold">{{ tabarukanStore.locationConfig.main_map_title || 'Titik Pusat Lokasi:' }}</strong>
+                    <span>{{ tabarukanStore.locationConfig.main_address }}</span>
+                  </div>
                 </div>
+                <a
+                  v-if="tabarukanStore.locationConfig.google_maps_link_url"
+                  :href="tabarukanStore.locationConfig.google_maps_link_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white text-xs font-bold transition-colors shadow-xs"
+                >
+                  <Navigation class="w-3.5 h-3.5" />
+                  <span>Buka Google Maps</span>
+                </a>
               </div>
             </div>
 
-            <!-- Petunjuk Rute & Transportasi (5/12) -->
+            <!-- Bagan Titik-Titik Lokasi Acara (5/12) -->
             <div class="lg:col-span-5 space-y-4">
-              <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                <div class="flex items-center gap-2.5 font-bold text-sm text-slate-900">
-                  <Bus class="w-5 h-5 text-[#008f8a]" />
-                  <span>Akses Dari Stasiun Jombang (JG)</span>
-                </div>
-                <p class="text-xs text-slate-600 leading-relaxed font-normal">
-                  Jarak sekitar 3,5 KM ke utara dari Stasiun Kereta Api Jombang. Waktu tempuh sekitar 10 menit menggunakan transportasi roda empat atau armada panitia ke Kompleks Tambakberas.
-                </p>
-              </div>
+              <div
+                v-for="point in tabarukanStore.locationPoints"
+                :key="point.id"
+                :class="[
+                  'p-5 rounded-2xl border transition-all',
+                  point.is_dark
+                    ? 'bg-[#02231c] text-white border-emerald-950 shadow-sm'
+                    : 'bg-white border-slate-200 shadow-2xs hover:border-[#008f8a]/40'
+                ]"
+              >
+                <div class="flex items-start gap-4">
+                  <!-- Foto kecil sesuai box jika diunggah -->
+                  <div
+                    v-if="point.image_url"
+                    :class="[
+                      'w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 border',
+                      point.is_dark ? 'border-emerald-500/30 bg-emerald-950/60' : 'border-slate-200 bg-slate-100'
+                    ]"
+                  >
+                    <img
+                      :src="point.image_url"
+                      :alt="point.title"
+                      class="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
 
-              <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                <div class="flex items-center gap-2.5 font-bold text-sm text-slate-900">
-                  <Navigation class="w-5 h-5 text-[#008f8a]" />
-                  <span>Akses Dari Gerbang Tol Jombang</span>
+                  <!-- Info Teks & Link Maps -->
+                  <div class="flex-1 min-w-0 space-y-2">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="flex items-center gap-2 font-bold text-sm" :class="point.is_dark ? 'text-emerald-300' : 'text-slate-900'">
+                        <MapPin class="w-4 h-4 shrink-0" :class="point.is_dark ? 'text-emerald-400' : 'text-[#008f8a]'" />
+                        <span>{{ point.title }}</span>
+                      </div>
+                      <span
+                        v-if="point.badge"
+                        :class="[
+                          'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0',
+                          point.is_dark
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-slate-100 text-slate-600'
+                        ]"
+                      >
+                        {{ point.badge }}
+                      </span>
+                    </div>
+                    <p
+                      class="text-xs leading-relaxed"
+                      :class="point.is_dark ? 'text-emerald-100/90 font-light' : 'text-slate-600 font-normal'"
+                    >
+                      {{ point.address }}
+                    </p>
+                    <div v-if="point.maps_url" class="pt-0.5">
+                      <a
+                        :href="point.maps_url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :class="[
+                          'inline-flex items-center gap-1.5 text-xs font-bold hover:underline',
+                          point.is_dark ? 'text-emerald-300' : 'text-[#008f8a]'
+                        ]"
+                      >
+                        <Navigation class="w-3.5 h-3.5" />
+                        <span>Buka Titik di Google Maps &rarr;</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <p class="text-xs text-slate-600 leading-relaxed font-normal">
-                  Keluar melalui Exit Tol Jombang (Tembelang). Lanjutkan perjalanan ke arah selatan melalui Jl. Raya Ploso–Jombang sekitar 15 menit menuju arena acara.
-                </p>
-              </div>
-
-              <div class="p-5 rounded-2xl bg-[#02231c] text-white border border-emerald-950 space-y-2.5 shadow-sm">
-                <div class="flex items-center gap-2 font-bold text-xs text-emerald-300">
-                  <Clock class="w-4 h-4" />
-                  <span>Pelayanan Parkir & Pengawalan</span>
-                </div>
-                <p class="text-xs text-emerald-100/90 leading-relaxed font-light">
-                  Area kantong parkir disiapkan di beberapa titik strategis di sekitar pondok dengan petunjuk petugas keamanan panitia & Banser.
-                </p>
               </div>
             </div>
           </div>

@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Jangan rewrite request yang mengarah ke API Laravel atau file/folder fisik
+  RewriteRule ^api(/|$) - [L]
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Semua rute Vue Router (mis. /berita, /informasi, /panel-panitia, /admin/content) diarahkan ke index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

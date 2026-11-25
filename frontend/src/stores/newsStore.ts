@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/lib/axios'
+import api, { isApiOffline } from '@/lib/axios'
 import { idbGet, idbSet } from '@/lib/idb'
+import { broadcastSync, onSyncBroadcast } from '@/lib/syncChannel'
 import type { Article, Category, Announcement, HomeData, PaginationMeta } from '@/types'
 
 export const DEFAULT_ARTICLES: Article[] = [
@@ -135,6 +136,27 @@ export const DEFAULT_ARTICLES: Article[] = [
 
 const STORAGE_KEY = 'muktamar_news_articles_v3'
 const SEEDED_KEY = 'muktamar_news_seeded_v3'
+const DELETED_IDS_KEY = 'muktamar_news_deleted_ids_v1'
+
+function getDeletedIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = localStorage.getItem(DELETED_IDS_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(parsed) ? parsed.map(String) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function addDeletedId(id: string | number) {
+  if (typeof window === 'undefined') return
+  try {
+    const set = getDeletedIds()
+    set.add(String(id))
+    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(set)))
+  } catch {}
+}
 
 // Fungsi pembersih duplikat: pastikan tidak ada 2 artikel dengan ID atau Judul/Slug yang sama
 function deduplicateArticles(list: Article[]): Article[] {
@@ -214,13 +236,18 @@ export const useNewsStore = defineStore('news', () => {
   const error = ref<string | null>(null)
 
   // Sinkronisasi data berkualitas tinggi dari IndexedDB saat startup (mengatasi batas kuota 5MB LocalStorage)
+  // IndexedDB adalah sumber utama: tidak ada batas kuota, menyimpan full base64 mediaMap dan cover_image
+  const initPromise: Promise<void> = typeof window !== 'undefined'
+    ? idbGet<Article[]>(STORAGE_KEY).then((idbData) => {
+        if (Array.isArray(idbData) && idbData.length > 0) {
+          // IndexedDB berhasil: gunakan datanya (lebih lengkap dari localStorage)
+          articles.value = deduplicateArticles(idbData)
+          pagination.value.total = articles.value.length
+        }
+      }).catch(() => {})
+    : Promise.resolve()
+
   if (typeof window !== 'undefined') {
-    idbGet<Article[]>(STORAGE_KEY).then((idbData) => {
-      if (Array.isArray(idbData) && idbData.length > 0) {
-        articles.value = deduplicateArticles(idbData)
-        pagination.value.total = articles.value.length
-      }
-    }).catch(() => {})
 
     // Dengarkan perubahan antar tab browser agar halaman publik otomatis update saat admin menghapus/menambah artikel
     window.addEventListener('storage', (e) => {
@@ -236,59 +263,85 @@ export const useNewsStore = defineStore('news', () => {
     })
 
     window.addEventListener('news-store-updated', () => {
+      // Reload dari IndexedDB (sumber paling otoritatif) karena event ini dipicu setelah persist()
+      reloadFromStorage()
+    })
+
+    onSyncBroadcast('news', () => {
       reloadFromStorage()
     })
   }
 
-  function reloadFromStorage() {
+  async function reloadFromStorage() {
     if (typeof window === 'undefined') return
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed)) {
+    try {
+      // Prioritaskan IndexedDB (tidak ada batas kuota, menyimpan penuh termasuk mediaMap + base64)
+      const idbData = await idbGet<Article[]>(STORAGE_KEY)
+      if (Array.isArray(idbData) && idbData.length > 0) {
+        articles.value = deduplicateArticles(idbData)
+        pagination.value.total = articles.value.length
+        return
+      }
+    } catch {}
+    // Fallback ke localStorage jika IndexedDB kosong atau gagal
+    try {
+      const lsSaved = localStorage.getItem(STORAGE_KEY)
+      if (lsSaved) {
+        const parsed = JSON.parse(lsSaved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
           articles.value = deduplicateArticles(parsed)
           pagination.value.total = articles.value.length
         }
-      } catch {}
-    }
+      }
+    } catch {}
   }
 
-  function persist() {
+  async function persist() {
     articles.value = deduplicateArticles(articles.value)
     pagination.value.total = articles.value.length
 
     if (typeof window !== 'undefined') {
-      // 1. Simpan salinan lengkap termasuk gambar ke IndexedDB (tidak ada batas kuota 5MB)
+      // 1. UTAMA: Simpan salinan lengkap termasuk gambar dan mediaMap ke IndexedDB (tidak ada batas kuota)
+      // IndexedDB adalah ground truth - tidak pernah hapus mediaMap atau pangkas content
       try {
-        idbSet(STORAGE_KEY, JSON.parse(JSON.stringify(articles.value))).catch(() => {})
+        await idbSet(STORAGE_KEY, JSON.parse(JSON.stringify(articles.value)))
       } catch {}
 
-      // 2. Simpan ke LocalStorage untuk akses sinkron cepat
+      // 2. Simpan ke LocalStorage untuk akses sinkron cepat (best effort saja)
       try {
         localStorage.setItem(SEEDED_KEY, 'true')
         localStorage.setItem(STORAGE_KEY, JSON.stringify(articles.value))
-      } catch (e) {
-        console.warn('LocalStorage quota limit reached, saving optimized version:', e)
-        // Jika base64 terlalu besar, simpan ringkasan agar status dan daftar artikel tetap konsisten
+      } catch {
+        // LocalStorage penuh (QuotaExceededError) - tidak masalah, IndexedDB sudah menyimpan lengkap
+        // Simpan versi minimal tanpa base64 agar hanya judul/slug/status tersimpan di localStorage
         try {
-          const lightweight = articles.value.map(a => ({
+          const minimal = articles.value.map(a => ({
             ...a,
-            content: a.content?.substring(0, 500) || '',
-            mediaMap: {}
+            // Pertahankan cover_image jika berupa URL (bukan base64), hapus jika base64 besar
+            cover_image: a.cover_image?.startsWith('data:') ? '' : (a.cover_image || ''),
+            cover_image_url: a.cover_image_url?.startsWith('data:') ? '' : (a.cover_image_url || ''),
+            // JANGAN hapus mediaMap atau truncate content - IndexedDB sudah simpan lengkap
+            content: a.content?.length > 2000
+              ? a.content.substring(0, 2000) + '...'
+              : (a.content || ''),
+            mediaMap: {} // localStorage versi minimal tidak perlu mediaMap
           }))
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight))
-        } catch {}
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal))
+        } catch {
+          // Jika masih gagal, biarkan - IndexedDB sudah cukup
+        }
       }
 
       // 3. Kabarkan ke seluruh tab / halaman bahwa daftar berita telah berubah
       try {
         window.dispatchEvent(new CustomEvent('news-store-updated'))
+      broadcastSync('news')
       } catch {}
     }
   }
 
   async function fetchHome() {
+    if (isApiOffline()) return
     isLoadingHome.value = true
     error.value = null
     try {
@@ -303,51 +356,73 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
+  let inFlightArticlesFetch: Promise<void> | null = null
+
   async function fetchArticles(page = 1, category = activeCategory.value, search = searchQuery.value) {
-    isLoadingArticles.value = true
-    error.value = null
-    try {
+    await initPromise
+    if (isApiOffline()) {
+      await reloadFromStorage()
+      return
+    }
+    if (inFlightArticlesFetch) {
+      return inFlightArticlesFetch
+    }
+    inFlightArticlesFetch = (async () => {
+      isLoadingArticles.value = true
+      error.value = null
+      try {
       const params: Record<string, string | number> = { page, per_page: 15 }
       if (category) params.category = category
       if (search && search.trim()) params.search = search.trim()
 
       const response = await api.get<{ data: Article[]; meta?: PaginationMeta }>('/articles', { params })
       if (response.data?.data && response.data.data.length > 0) {
-        // Gabungkan artikel dari server dengan artikel lokal yang dibuat pengguna
+        const deletedIds = getDeletedIds()
+        // Gabungkan artikel dari server dengan artikel lokal yang dibuat/diedit pengguna
         const localMap = new Map(articles.value.map(a => [String(a.id), a]))
         const localSlugMap = new Map(articles.value.map(a => [a.slug, a]))
 
-        const mergedServerArticles = response.data.data.map(serverArt => {
-          const localArt = localMap.get(String(serverArt.id)) || localSlugMap.get(serverArt.slug)
-          if (localArt) {
-            const hasLocalCover = localArt.cover_image && 
-              (localArt.cover_image.startsWith('data:') || !localArt.cover_image.includes('1585829365295'))
-            const serverHasTypewriter = !serverArt.cover_image || serverArt.cover_image.includes('1585829365295')
+        const mergedServerArticles = response.data.data
+          .filter(serverArt => !deletedIds.has(String(serverArt.id)))
+          .map(serverArt => {
+            const localArt = localMap.get(String(serverArt.id)) || localSlugMap.get(serverArt.slug)
+            if (localArt) {
+              // Jika artikel sudah pernah diedit secara lokal, pertahankan seluruh hasil edit lokal
+              if ((localArt as any).isLocallyModified) {
+                return localArt
+              }
+              const hasLocalCover = localArt.cover_image &&
+                (localArt.cover_image.startsWith('data:') || !localArt.cover_image.includes('1585829365295'))
+              const serverHasTypewriter = !serverArt.cover_image || serverArt.cover_image.includes('1585829365295')
 
-            return {
-              ...serverArt,
-              cover_image: (hasLocalCover && serverHasTypewriter) ? localArt.cover_image : (serverArt.cover_image || localArt.cover_image),
-              cover_image_url: (hasLocalCover && serverHasTypewriter) ? (localArt.cover_image_url || localArt.cover_image) : (serverArt.cover_image_url || serverArt.cover_image || localArt.cover_image),
-              mediaMap: { ...(localArt.mediaMap || {}), ...(serverArt.mediaMap || {}) }
+              return {
+                ...serverArt,
+                cover_image: (hasLocalCover && serverHasTypewriter) ? localArt.cover_image : (serverArt.cover_image || localArt.cover_image),
+                cover_image_url: (hasLocalCover && serverHasTypewriter) ? (localArt.cover_image_url || localArt.cover_image) : (serverArt.cover_image_url || serverArt.cover_image || localArt.cover_image),
+                mediaMap: { ...(localArt.mediaMap || {}), ...(serverArt.mediaMap || {}) }
+              }
             }
-          }
-          return serverArt
-        })
+            return serverArt
+          })
 
         const remoteIds = new Set(response.data.data.map(a => String(a.id)))
-        const localOnly = articles.value.filter(a => !remoteIds.has(String(a.id)))
+        const localOnly = articles.value.filter(a => !remoteIds.has(String(a.id)) && !deletedIds.has(String(a.id)))
         articles.value = deduplicateArticles([...localOnly, ...mergedServerArticles])
-        persist()
+        await persist()
       }
     } catch (err: any) {
-      // Offline fallback: muat ulang dari storage lokal dan pastikan ter-deduplikasi
-      reloadFromStorage()
+      // Offline fallback: muat ulang dari IndexedDB (sumber paling lengkap dengan mediaMap penuh)
+      await reloadFromStorage()
     } finally {
       isLoadingArticles.value = false
+      inFlightArticlesFetch = null
     }
+    })()
+    return inFlightArticlesFetch
   }
 
   async function fetchArticleBySlug(slug: string) {
+    await initPromise
     isLoadingDetail.value = true
     error.value = null
     try {
@@ -357,13 +432,32 @@ export const useNewsStore = defineStore('news', () => {
       }>(`/articles/${slug}`)
 
       if (response.data?.data) {
-        selectedArticle.value = response.data.data.article
+        const localFound = articles.value.find(a => a.slug === slug)
+        if (localFound && (localFound as any).isLocallyModified) {
+          selectedArticle.value = localFound
+        } else {
+          selectedArticle.value = response.data.data.article
+        }
         relatedArticles.value = response.data.data.related_articles || []
         isModalOpen.value = true
       }
     } catch (err: any) {
-      // Local fallback
-      const found = articles.value.find(a => a.slug === slug)
+      // Local fallback: cari dari store yang sudah dimuat dari IndexedDB (termasuk mediaMap)
+      let found = articles.value.find(a => a.slug === slug)
+      // Jika artikel tidak ada di memori, coba muat dari IndexedDB
+      if (!found) {
+        try {
+          const idbData = await idbGet<Article[]>(STORAGE_KEY)
+          if (Array.isArray(idbData)) {
+            found = idbData.find(a => a.slug === slug)
+            if (found) {
+              // Perbarui store dengan data terlengkap dari IndexedDB
+              articles.value = deduplicateArticles(idbData)
+              pagination.value.total = articles.value.length
+            }
+          }
+        } catch {}
+      }
       if (found) {
         selectedArticle.value = found
         relatedArticles.value = articles.value.filter(a => a.slug !== slug).slice(0, 3)
@@ -374,6 +468,7 @@ export const useNewsStore = defineStore('news', () => {
   }
 
   async function saveArticle(articleData: Partial<Article>) {
+    await initPromise
     let savedArticle: Article | null = null
 
     // Pastikan foto sampul yang diunggah pengguna disimpan seutuhnya (tidak diganti foto mesin tik default)
@@ -395,8 +490,9 @@ export const useNewsStore = defineStore('news', () => {
           tags: articleData.tags !== undefined ? articleData.tags : articles.value[idx].tags,
           metaTitle: articleData.metaTitle !== undefined ? articleData.metaTitle : articles.value[idx].metaTitle,
           metaDescription: articleData.metaDescription !== undefined ? articleData.metaDescription : articles.value[idx].metaDescription,
-          mediaMap: articleData.mediaMap !== undefined ? articleData.mediaMap : (articles.value[idx].mediaMap || {})
-        } as Article
+          mediaMap: articleData.mediaMap !== undefined ? articleData.mediaMap : (articles.value[idx].mediaMap || {}),
+          isLocallyModified: true
+        } as Article & { isLocallyModified?: boolean }
         savedArticle = articles.value[idx]
       }
     } else {
@@ -419,9 +515,10 @@ export const useNewsStore = defineStore('news', () => {
           category: articleData.category || articles.value[existingIdx].category,
           author: articleData.author || articles.value[existingIdx].author,
           mediaMap: articleData.mediaMap || articles.value[existingIdx].mediaMap || {},
-        } as Article
+          isLocallyModified: true
+        } as Article & { isLocallyModified?: boolean }
         savedArticle = articles.value[existingIdx]
-        persist()
+        await persist()
         return true
       }
 
@@ -448,12 +545,13 @@ export const useNewsStore = defineStore('news', () => {
         metaDescription: articleData.metaDescription || '',
         published_at: new Date().toISOString(),
         published_at_formatted: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        reading_time: `${Math.max(1, Math.ceil((articleData.content?.length || 500) / 500))} menit baca`
-      }
+        reading_time: `${Math.max(1, Math.ceil((articleData.content?.length || 500) / 500))} menit baca`,
+        isLocallyModified: true
+      } as Article & { isLocallyModified?: boolean }
       articles.value.unshift(savedArticle)
     }
 
-    persist()
+    await persist()
 
     // Upaya sinkronisasi ke backend API (jika server Laravel aktif)
     try {
@@ -468,12 +566,12 @@ export const useNewsStore = defineStore('news', () => {
         cover_image: cover
       }
       if (articleData.id && typeof articleData.id === 'number' && articleData.id < 1000000000) {
-        await api.put(`/admin/articles/${articleData.id}`, payload)
+        await api.put(`/admin/articles/${articleData.id}`, payload, { skipAuthRedirect: true } as any)
       } else {
-        const res = await api.post('/admin/articles', payload)
+        const res = await api.post('/admin/articles', payload, { skipAuthRedirect: true } as any)
         if (res.data?.data?.id && savedArticle) {
           savedArticle.id = res.data.data.id
-          persist()
+          await persist()
         }
       }
     } catch {
@@ -492,14 +590,16 @@ export const useNewsStore = defineStore('news', () => {
   }
 
   async function deleteArticle(id: number | string) {
+    await initPromise
     const targetId = String(id)
+    addDeletedId(targetId)
     articles.value = articles.value.filter(a => String(a.id) !== targetId)
-    persist()
+    await persist()
 
     // Upaya sinkronisasi hapus ke backend Laravel jika aktif
     try {
       if (typeof id === 'number' && id < 1000000000) {
-        await api.delete(`/admin/articles/${id}`)
+        await api.delete(`/admin/articles/${id}`, { skipAuthRedirect: true } as any)
       }
     } catch {
       // Offline fallback
@@ -508,12 +608,14 @@ export const useNewsStore = defineStore('news', () => {
     return true
   }
 
-  function toggleArticleStatus(id: number | string) {
+  async function toggleArticleStatus(id: number | string) {
+    await initPromise
     const targetId = String(id)
     const art = articles.value.find(a => String(a.id) === targetId)
     if (art) {
       art.status = art.status === 'published' ? 'draft' : 'published'
-      persist()
+      ;(art as any).isLocallyModified = true
+      await persist()
     }
   }
 

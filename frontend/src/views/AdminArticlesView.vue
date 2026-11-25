@@ -7,7 +7,9 @@ import {
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/lib/axios'
 import type { Article, Category } from '@/types'
+import { useUiStore } from '@/stores/uiStore'
 
+const uiStore = useUiStore()
 const articles = ref<Article[]>([])
 const categories = ref<Category[]>([])
 const isLoading = ref(false)
@@ -190,7 +192,7 @@ async function handleDeleteArticle() {
     deletingArticle.value = null
     fetchArticles(currentPage.value)
   } catch (err: any) {
-    alert(err.response?.data?.message || 'Gagal menghapus artikel.')
+    uiStore.notify(err.response?.data?.message || 'Gagal menghapus artikel.', 'error')
   } finally {
     isDeleting.value = false
   }

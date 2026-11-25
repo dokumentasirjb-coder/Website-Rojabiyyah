@@ -3,6 +3,8 @@ import { ref, reactive, onMounted } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
 import ImageUploadInput from '@/components/ImageUploadInput.vue'
 import { useSettingsStore, THEME_PRESETS, applyTheme, type ThemePreset } from '@/stores/settingsStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useUiStore } from '@/stores/uiStore'
 import { 
   Settings, 
   Save, 
@@ -20,14 +22,52 @@ import {
   Palette,
   Check,
   Eye,
+  EyeOff,
+  Lock,
+  AlertCircle,
   Info
 } from 'lucide-vue-next'
 import SocialIcons from '@/components/SocialIcons.vue'
 
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
+const uiStore = useUiStore()
 
-const activeTab = ref<'navbar' | 'theme' | 'banners' | 'hero' | 'footer' | 'social'>('navbar')
+const activeTab = ref<'navbar' | 'theme' | 'banners' | 'hero' | 'footer' | 'social' | 'security'>('navbar')
 const showToast = ref(false)
+
+const securityForm = reactive({
+  email: authStore.getAdminEmail(),
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+const showCurrentPwd = ref(false)
+const showNewPwd = ref(false)
+const securityError = ref('')
+const securitySuccess = ref('')
+
+function handleSaveSecurity() {
+  securityError.value = ''
+  securitySuccess.value = ''
+  if (securityForm.newPassword !== securityForm.confirmPassword) {
+    securityError.value = 'Konfirmasi kata sandi baru tidak sama.'
+    return
+  }
+  const res = authStore.updateLocalCredentials(
+    securityForm.currentPassword,
+    securityForm.email,
+    securityForm.newPassword
+  )
+  if (res.success) {
+    securitySuccess.value = res.message
+    securityForm.currentPassword = ''
+    securityForm.newPassword = ''
+    securityForm.confirmPassword = ''
+  } else {
+    securityError.value = res.message
+  }
+}
 
 const form = reactive({ ...settingsStore.settings })
 
@@ -76,8 +116,15 @@ function onCustomColorChange() {
 }
 
 async function handleSave() {
-  const res = await settingsStore.updateSettings(form)
+  // Jaga agar galeri & agenda terbaru tidak tertimpa saat menyimpan pengaturan tampilan/banner
+  const payload = {
+    ...form,
+    gallery_albums_json: settingsStore.settings.gallery_albums_json,
+    agenda_schedules_json: settingsStore.settings.agenda_schedules_json,
+  }
+  const res = await settingsStore.updateSettings(payload)
   if (res.success) {
+    Object.assign(form, settingsStore.settings)
     showToast.value = true
     setTimeout(() => {
       showToast.value = false
@@ -85,9 +132,9 @@ async function handleSave() {
   }
 }
 
-function handleReset() {
-  if (confirm('Apakah Anda yakin ingin mengembalikan semua teks, tema warna, banner, konten tentang, footer, dan medsos ke pengaturan bawaan awal?')) {
-    settingsStore.resetToDefault()
+async function handleReset() {
+  if (await uiStore.askConfirm('Apakah Anda yakin ingin mengembalikan semua teks, tema warna, banner, konten tentang, footer, dan medsos ke pengaturan bawaan awal?', { title: 'Reset Pengaturan Standar', confirmText: 'Ya, Reset', variant: 'warning' })) {
+    await settingsStore.resetToDefault()
     Object.assign(form, settingsStore.settings)
     applyTheme(form)
     showToast.value = true
@@ -222,6 +269,16 @@ function handleReset() {
           >
             <Share2 class="w-4 h-4" />
             <span>Media Sosial & Icon Link</span>
+          </button>
+
+          <button
+            type="button"
+            @click="activeTab = 'security'"
+            class="w-full px-4 py-3 rounded-xl text-left text-xs font-semibold transition-all flex items-center gap-3 cursor-pointer"
+            :class="[activeTab === 'security' ? 'bg-[#008f8a] text-white shadow-sm font-bold' : 'text-slate-200 hover:bg-white/10 hover:text-white']"
+          >
+            <Lock class="w-4 h-4" />
+            <span>Keamanan &amp; Password</span>
           </button>
         </div>
 
@@ -884,7 +941,7 @@ function handleReset() {
                   <input
                     v-model="form.footer_copyright"
                     type="text"
-                    placeholder="Contoh: Perkumpulan Nahdlatul Ulama"
+                    placeholder="Contoh: Panitia Rojabiyyah"
                     class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
                   />
                 </div>
@@ -1025,6 +1082,108 @@ function handleReset() {
                   placeholder="https://wa.me/6281234567890"
                   class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
                 />
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: KEAMANAN & PASSWORD ADMIN -->
+          <div v-show="activeTab === 'security'" class="space-y-6">
+            <div class="border-b border-[#143d30] pb-4">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <Lock class="w-5 h-5 text-emerald-400" />
+                <span>Keamanan &amp; Ganti Password Admin</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">
+                Ubah email login dan kata sandi Dashboard Admin Panitia Rojabiyyah (<code class="text-emerald-300">/panel-panitia</code>).
+              </p>
+            </div>
+
+            <div
+              v-if="securityError"
+              class="p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2.5"
+            >
+              <AlertCircle class="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{{ securityError }}</span>
+            </div>
+
+            <div
+              v-if="securitySuccess"
+              class="p-4 rounded-2xl bg-[#0d3326] border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2.5"
+            >
+              <CheckCircle2 class="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{{ securitySuccess }}</span>
+            </div>
+
+            <div class="space-y-4 max-w-lg">
+              <div>
+                <label class="block text-xs font-bold text-white mb-1.5">Email Login Admin</label>
+                <input
+                  v-model="securityForm.email"
+                  type="email"
+                  placeholder="admin@rojabiyyah.id"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-white mb-1.5">Kata Sandi Saat Ini</label>
+                <div class="relative">
+                  <input
+                    v-model="securityForm.currentPassword"
+                    :type="showCurrentPwd ? 'text' : 'password'"
+                    placeholder="Masukkan kata sandi lama"
+                    class="w-full px-4 pr-10 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                  />
+                  <button
+                    type="button"
+                    @click="showCurrentPwd = !showCurrentPwd"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <EyeOff v-if="showCurrentPwd" class="w-4 h-4" />
+                    <Eye v-else class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-white mb-1.5">Kata Sandi Baru (Min. 6 Karakter)</label>
+                <div class="relative">
+                  <input
+                    v-model="securityForm.newPassword"
+                    :type="showNewPwd ? 'text' : 'password'"
+                    placeholder="Masukkan kata sandi baru"
+                    class="w-full px-4 pr-10 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                  />
+                  <button
+                    type="button"
+                    @click="showNewPwd = !showNewPwd"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <EyeOff v-if="showNewPwd" class="w-4 h-4" />
+                    <Eye v-else class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-white mb-1.5">Konfirmasi Kata Sandi Baru</label>
+                <input
+                  v-model="securityForm.confirmPassword"
+                  :type="showNewPwd ? 'text' : 'password'"
+                  placeholder="Ulangi kata sandi baru"
+                  class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                />
+              </div>
+
+              <div class="pt-2">
+                <button
+                  type="button"
+                  @click="handleSaveSecurity"
+                  class="px-6 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Lock class="w-4 h-4" />
+                  <span>Simpan Password Baru</span>
+                </button>
               </div>
             </div>
           </div>

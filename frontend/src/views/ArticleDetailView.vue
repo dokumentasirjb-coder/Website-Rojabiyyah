@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { idbGet } from '@/lib/idb'
+import type { Article } from '@/types'
 import { 
   ArrowLeft, 
   Calendar, 
@@ -21,7 +23,6 @@ import {
 import { useNewsStore } from '@/stores/newsStore'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
-import type { Article } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,6 +30,24 @@ const newsStore = useNewsStore()
 
 const copiedToast = ref(false)
 let copyTimer: any = null
+
+// Cache media dari IndexedDB (per-foto_N) agar gambar inline tetap tampil meski mediaMap tertinggal
+const idbMediaCache = ref<Record<string, string>>({})
+if (typeof window !== 'undefined') {
+  // Coba load cache darurat dari localStorage (foto_1, foto_2, dsb)
+  try {
+    const lsCache = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
+    if (lsCache && typeof lsCache === 'object') {
+      idbMediaCache.value = lsCache
+    }
+  } catch {}
+  // Juga coba load setiap foto_N yang disimpan langsung di IndexedDB
+  for (let i = 1; i <= 50; i++) {
+    idbGet<string>(`media_foto_${i}`).then(val => {
+      if (val) idbMediaCache.value[`foto_${i}`] = val
+    }).catch(() => {})
+  }
+}
 
 // Fallback articles from the Muktamar reference
 const fallbackArticles: Record<string, Article> = {
@@ -205,10 +224,15 @@ function formatContent(raw: string, mediaMap?: Record<string, string>): string {
   // Replace Markdown images: ![alt](url)
   text = text.replace(/!\[(.*?)\]\((.*?)\)/g, (_match, alt, src) => {
     let actualSrc = src.trim()
+    // 1. Coba dari mediaMap artikel (paling akurat)
     if (mediaMap && mediaMap[actualSrc]) {
       actualSrc = mediaMap[actualSrc]
-    } else if (actualSrc.startsWith('foto_') || !actualSrc.includes('/')) {
-      if (typeof window !== 'undefined') {
+    } else if (actualSrc.startsWith('foto_') || (!actualSrc.includes('/') && !actualSrc.startsWith('data:'))) {
+      // 2. Coba dari idbMediaCache (dimuat dari IndexedDB/localStorage saat startup)
+      if (idbMediaCache.value[actualSrc]) {
+        actualSrc = idbMediaCache.value[actualSrc]
+      } else if (typeof window !== 'undefined') {
+        // 3. Fallback ke localStorage cache darurat (jangan mutasi ref saat render)
         try {
           const cached = JSON.parse(localStorage.getItem('muktamar_last_inserted_media') || '{}')
           if (cached[actualSrc]) {
