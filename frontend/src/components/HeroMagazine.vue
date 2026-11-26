@@ -232,7 +232,7 @@ onUnmounted(() => {
                 v-for="item in newsStore.homeData.highlights.slice(0, 2)"
                 :key="item.id"
                 @click="handleArticleClick(item)"
-                class="group bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 hover:border-[#c59b27]/50 p-4 sm:p-5 transition-all duration-300 cursor-pointer flex flex-col justify-between hover:bg-white/15"
+                class="group bg-slate-900/75 rounded-2xl border border-white/15 hover:border-[#c59b27]/50 p-4 sm:p-5 transition-colors duration-300 cursor-pointer flex flex-col justify-between hover:bg-slate-900/90"
               >
                 <div class="flex gap-4">
                   <div class="w-24 sm:w-28 h-24 sm:h-24 rounded-xl overflow-hidden shrink-0 bg-black/40">

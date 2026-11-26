@@ -25,10 +25,13 @@ function toggleAccordion(item: ScheduleItem) {
     <!-- Top Hero Banner (Screenshot 3) -->
     <div class="relative bg-[#fbfbfa] border-b border-slate-100 overflow-hidden min-h-[380px] sm:min-h-[440px] flex items-center">
       <!-- Stadium/Hall Plenary Image with White Fade Overlay -->
-      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0">
+      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0 bg-gradient-to-br from-slate-100 to-emerald-50/40">
         <img
-          :src="settingsStore.settings.banner_agenda_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1400&q=80'"
-          alt="Arena Muktamar"
+          v-if="settingsStore.settings.banner_agenda_url"
+          :src="settingsStore.settings.banner_agenda_url"
+          alt="Banner Agenda Acara"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover object-center opacity-80"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-[#fbfbfa] via-[#fbfbfa]/75 to-transparent"></div>

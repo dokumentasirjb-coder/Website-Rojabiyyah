@@ -8,7 +8,6 @@ import BerandaSection from '@/views/sections/BerandaSection.vue'
 import TentangSection from '@/views/sections/TentangSection.vue'
 import AgendaSection from '@/views/sections/AgendaSection.vue'
 import BeritaSection from '@/views/sections/BeritaSection.vue'
-import GaleriSection from '@/views/sections/GaleriSection.vue'
 import Footer from '@/components/Footer.vue'
 
 const route = useRoute()
@@ -17,7 +16,7 @@ const newsStore = useNewsStore()
 const settingsStore = useSettingsStore()
 
 const activeSection = ref('beranda')
-const sectionIds = ['beranda', 'tentang', 'agenda', 'berita', 'galeri']
+const sectionIds = ['beranda', 'tentang', 'agenda', 'berita']
 let observer: IntersectionObserver | null = null
 
 function scrollToSection(id: string) {
@@ -96,23 +95,18 @@ onUnmounted(() => {
       </section>
 
       <!-- 2. Tentang -->
-      <section id="tentang" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
+      <section id="tentang" v-reveal class="scroll-mt-20">
         <TentangSection />
       </section>
 
       <!-- 3. Agenda -->
-      <section id="agenda" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
+      <section id="agenda" v-reveal class="scroll-mt-20">
         <AgendaSection />
       </section>
 
       <!-- 4. Berita -->
-      <section id="berita" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
+      <section id="berita" v-reveal class="scroll-mt-20">
         <BeritaSection />
-      </section>
-
-      <!-- 5. Galeri -->
-      <section id="galeri" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
-        <GaleriSection />
       </section>
     </main>
 

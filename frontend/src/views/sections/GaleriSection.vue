@@ -46,10 +46,13 @@ const filteredPhotos = computed(() => {
   <div class="bg-white">
     <!-- Top Hero Banner -->
     <div class="relative bg-[#fbfbfa] border-b border-slate-100 overflow-hidden min-h-[280px] sm:min-h-[440px] flex items-center">
-      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0">
+      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0 bg-gradient-to-br from-slate-100 to-emerald-50/40">
         <img
-          :src="settingsStore.settings.banner_galeri_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1400&q=80'"
-          alt="Galeri Muktamar"
+          v-if="settingsStore.settings.banner_galeri_url"
+          :src="settingsStore.settings.banner_galeri_url"
+          alt="Galeri Dokumentasi"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover object-center opacity-85"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-[#fbfbfa] via-[#fbfbfa]/75 to-transparent"></div>
@@ -108,34 +111,46 @@ const filteredPhotos = computed(() => {
         <p class="text-xs text-slate-500 mt-1">Belum ada foto dokumentasi yang diunggah untuk album ini.</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div
-          v-for="(photo, idx) in filteredPhotos"
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <article
+          v-for="photo in filteredPhotos"
           :key="photo.id"
-          v-reveal="{ y: 24, delay: (idx % 3) * 0.08 }"
+          v-reveal
           @click="selectedPhoto = photo"
-          class="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 cursor-pointer border border-slate-200 shadow-2xs"
+          class="group rounded-2xl overflow-hidden bg-white cursor-pointer border border-slate-200/90 shadow-xs hover:shadow-md hover:border-[#008f8a]/40 transition-all flex flex-col"
         >
-          <img
-            :src="photo.src"
-            :alt="photo.title"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-            decoding="async"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 text-white">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[#008f8a] bg-white px-2 py-0.5 rounded-full w-max mb-1.5">
-              {{ photo.albumTitle }}
+          <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
+            <img
+              :src="photo.src"
+              :alt="photo.title"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+              decoding="async"
+            />
+            <span class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center opacity-90 group-hover:bg-[#008f8a] transition-colors">
+              <ZoomIn class="w-4 h-4" />
             </span>
-            <h3 class="text-xs sm:text-sm font-semibold line-clamp-2">
-              {{ photo.title }}
-            </h3>
-            <p v-if="photo.description" class="text-[11px] text-slate-300 line-clamp-1 mt-0.5">
-              {{ photo.description }}
-            </p>
-            <span v-if="photo.created_at" class="text-[10px] text-slate-400 mt-1">{{ photo.created_at }}</span>
           </div>
-        </div>
+
+          <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-2">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-[#008f8a] border border-emerald-100">
+                  {{ photo.albumTitle }}
+                </span>
+                <span v-if="photo.created_at" class="text-[11px] text-slate-400 shrink-0">
+                  {{ photo.created_at }}
+                </span>
+              </div>
+              <h3 class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#008f8a] transition-colors line-clamp-2 leading-snug">
+                {{ photo.title }}
+              </h3>
+              <p v-if="photo.description" class="text-xs text-slate-600 line-clamp-2 mt-1.5 leading-relaxed">
+                {{ photo.description }}
+              </p>
+            </div>
+          </div>
+        </article>
       </div>
     </div>
 

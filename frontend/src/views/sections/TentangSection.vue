@@ -25,10 +25,11 @@ const historyParagraphs = computed<AboutParagraphItem[]>(() => {
     <!-- Top Hero Banner with Image Fade (Matching Screenshot & Other Pages) -->
     <div class="relative bg-white border-b border-slate-100 overflow-hidden min-h-[340px] sm:min-h-[400px] lg:min-h-[440px] flex items-center">
       <!-- Background / Right-aligned Banner Photo with Smooth White Fade -->
-      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0">
+      <div class="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-3/5 z-0 bg-gradient-to-br from-slate-100 to-emerald-50/40">
         <img
-          :src="settingsStore.settings.banner_tentang_url || 'https://images.unsplash.com/photo-1590076215667-875d4ef2d7ee?auto=format&fit=crop&w=1200&q=80'"
-          alt="Latar Belakang Tentang Muktamar"
+          v-if="settingsStore.settings.banner_tentang_url"
+          :src="settingsStore.settings.banner_tentang_url"
+          alt="Latar Belakang Tentang Acara"
           loading="lazy"
           decoding="async"
           class="w-full h-full object-cover object-center opacity-80"

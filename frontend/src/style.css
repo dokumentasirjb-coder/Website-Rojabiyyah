@@ -16,6 +16,10 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   html,
   body {
     overflow-x: hidden;
@@ -23,13 +27,22 @@
     height: auto !important;
   }
 
-  html.lenis-stopped {
-    overflow-y: auto !important;
-  }
-
   body {
     background-color: #ffffff;
     color: #111827;
     font-family: var(--font-sans);
   }
+}
+
+.reveal-item {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+  will-change: opacity, transform;
+}
+
+.reveal-item.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }

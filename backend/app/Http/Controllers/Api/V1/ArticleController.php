@@ -8,6 +8,7 @@ use App\Services\ArticleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Schema;
 
 class ArticleController extends Controller
 {
@@ -38,8 +39,12 @@ class ArticleController extends Controller
     {
         $article = $this->articleService->getBySlug($slug);
 
-        // Naikkan view count artikel
-        $this->articleService->incrementViews($article);
+        // Naikkan view count artikel secara aman (cek ketersediaan kolom views / view_count)
+        if (Schema::hasColumn('articles', 'views')) {
+            $article->increment('views');
+        } elseif (Schema::hasColumn('articles', 'view_count')) {
+            $this->articleService->incrementViews($article);
+        }
 
         // Ambil 3 artikel terkait dari kategori yang sama
         $relatedArticles = $this->articleService->getRelatedArticles($article, 3);

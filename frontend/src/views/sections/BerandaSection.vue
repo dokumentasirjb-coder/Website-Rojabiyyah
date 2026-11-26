@@ -9,10 +9,10 @@ const settingsStore = useSettingsStore()
     <!-- Background Image (LCP element: fetchpriority="high", eager loading) -->
     <div class="absolute inset-0 z-0 bg-gradient-to-br from-[#08253C] via-[#0b3150] to-[#051a2b]">
       <img
-        v-if="settingsStore.settings.banner_beranda_url"
-        :src="settingsStore.settings.banner_beranda_url"
+        :src="settingsStore.settings.banner_beranda_url || '/storage/settings/hero-beranda-active.jpg'"
         :alt="settingsStore.settings.hero_headline_1 || 'Panitia Rojabiyyah & Haul Abah Ke-5'"
         fetchpriority="high"
+        loading="eager"
         decoding="async"
         class="w-full h-full object-cover object-center opacity-45"
       />
