@@ -66,15 +66,15 @@ export const EMPTY_SETTINGS: SiteSettings = {
   social_twitter: '',
   social_tiktok: '',
   social_whatsapp: '',
-  theme_preset: 'emerald-nu',
-  primary_color: '#008f8a',
-  primary_hover_color: '#007a75',
+  theme_preset: 'navy-rojabiyyah',
+  primary_color: '#08253C',
+  primary_hover_color: '#0c3556',
   secondary_color: '#006432',
   accent_color: '#b38856',
-  navbar_bg_color: '#ffffff',
-  navbar_style: 'white',
-  footer_bg_color: '#042623',
-  footer_bottom_bg_color: '#021a18',
+  navbar_bg_color: '#08253C',
+  navbar_style: 'dark',
+  footer_bg_color: '#08253C',
+  footer_bottom_bg_color: '#051a2b',
   agenda_schedules_json: [],
   gallery_items_json: [],
   gallery_albums_json: [],
@@ -272,8 +272,31 @@ function mergeSettings(serverData: Partial<SiteSettings>): SiteSettings {
   return merged
 }
 
+const SETTINGS_CACHE_KEY = 'roja_settings_cache'
+
+function loadCachedSettings(): SiteSettings {
+  if (typeof window === 'undefined') return { ...EMPTY_SETTINGS }
+  try {
+    const raw = localStorage.getItem(SETTINGS_CACHE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object') {
+        return mergeSettings(parsed)
+      }
+    }
+  } catch {}
+  return { ...EMPTY_SETTINGS }
+}
+
+function saveCachedSettings(data: SiteSettings) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data))
+  } catch {}
+}
+
 export const useSettingsStore = defineStore('settings', () => {
-  const settings = ref<SiteSettings>({ ...EMPTY_SETTINGS })
+  const settings = ref<SiteSettings>(loadCachedSettings())
   const isLoaded = ref(false)
   const isLoading = ref(false)
   const isSaving = ref(false)
@@ -306,6 +329,7 @@ export const useSettingsStore = defineStore('settings', () => {
         const response = await api.get<{ success: boolean; data: SiteSettings & { informasi_data_json?: any } }>('/settings')
         if (response.data?.data) {
           settings.value = mergeSettings(response.data.data)
+          saveCachedSettings(settings.value)
           isLoaded.value = true
           applyTheme(settings.value)
           if (settings.value.favicon_url) {
@@ -339,6 +363,7 @@ export const useSettingsStore = defineStore('settings', () => {
       const response = await api.post<{ success: boolean; message: string; data: SiteSettings }>('/admin/settings', updatedData)
       if (response.data?.data) {
         settings.value = mergeSettings(response.data.data)
+        saveCachedSettings(settings.value)
         applyTheme(settings.value)
         if (settings.value.favicon_url) {
           applyFavicon(settings.value.favicon_url)

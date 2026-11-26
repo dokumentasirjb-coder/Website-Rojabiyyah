@@ -29,6 +29,8 @@ const historyParagraphs = computed<AboutParagraphItem[]>(() => {
         <img
           :src="settingsStore.settings.banner_tentang_url || 'https://images.unsplash.com/photo-1590076215667-875d4ef2d7ee?auto=format&fit=crop&w=1200&q=80'"
           alt="Latar Belakang Tentang Muktamar"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover object-center opacity-80"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-transparent"></div>

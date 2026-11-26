@@ -29,7 +29,7 @@ const currentTab = computed(() => {
 })
 
 const isDarkNavbar = computed(() => {
-  const style = settingsStore.settings.navbar_style || 'white'
+  const style = settingsStore.settings.navbar_style || 'dark'
   if (style === 'primary' || style === 'dark') return true
   const hex = settingsStore.settings.navbar_bg_color
   if (!hex || hex === '#ffffff') return false
@@ -45,10 +45,10 @@ const isDarkNavbar = computed(() => {
 })
 
 const navbarBackground = computed(() => {
-  const style = settingsStore.settings.navbar_style || 'white'
-  if (style === 'primary') return 'var(--site-primary, #008f8a)'
-  if (style === 'dark') return settingsStore.settings.footer_bg_color || 'var(--site-footer-bg, #042623)'
-  return settingsStore.settings.navbar_bg_color || '#ffffff'
+  const style = settingsStore.settings.navbar_style || 'dark'
+  if (style === 'primary') return 'var(--site-primary, #08253C)'
+  if (style === 'dark') return settingsStore.settings.navbar_bg_color || settingsStore.settings.footer_bg_color || 'var(--site-navbar-bg, #08253C)'
+  return settingsStore.settings.navbar_bg_color || '#08253C'
 })
 
 function navigateTo(targetPath: string) {

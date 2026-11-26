@@ -7,15 +7,18 @@ use App\Http\Resources\AnnouncementResource;
 use App\Http\Resources\ArticleResource;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use App\Models\SiteSetting;
 use App\Services\AnnouncementService;
 use App\Services\ArticleService;
+use App\Services\SiteSettingMediaService;
 use Illuminate\Http\JsonResponse;
 
 class HomeController extends Controller
 {
     public function __construct(
         protected ArticleService $articleService,
-        protected AnnouncementService $announcementService
+        protected AnnouncementService $announcementService,
+        protected SiteSettingMediaService $mediaService
     ) {}
 
     /**
@@ -28,6 +31,9 @@ class HomeController extends Controller
      */
     public function __invoke(): JsonResponse
     {
+        // Pastikan seluruh gambar Base64 di site_settings otomatis tersimpan ke /storage/settings/
+        $this->mediaService->normalizeStoredBase64Images(SiteSetting::getSettings());
+
         // 1. Berita Utama (Hero)
         $hero = $this->articleService->getFeaturedHero();
 

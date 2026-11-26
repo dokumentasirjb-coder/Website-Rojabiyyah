@@ -81,6 +81,7 @@ function handleArticleClick(article: Article) {
                 :alt="article.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
+                decoding="async"
               />
             </div>
 

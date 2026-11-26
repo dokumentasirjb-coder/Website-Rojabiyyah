@@ -4,17 +4,24 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\SiteSetting;
+use App\Services\SiteSettingMediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SiteSettingController extends Controller
 {
+    public function __construct(
+        protected SiteSettingMediaService $mediaService
+    ) {}
+
     /**
      * Mendapatkan pengaturan situs untuk frontend dan admin.
      */
     public function index(): JsonResponse
     {
-        $settings = SiteSetting::getSettings();
+        $settings = $this->mediaService->normalizeStoredBase64Images(
+            SiteSetting::getSettings()
+        );
 
         return response()->json([
             'success' => true,
@@ -100,13 +107,16 @@ class SiteSettingController extends Controller
             'informasi_data_json' => 'nullable|array',
         ]);
 
+        $validated = $this->mediaService->convertBase64Fields($validated);
+
         $settings = SiteSetting::getSettings();
         $settings->update($validated);
+        $settings = $this->mediaService->normalizeStoredBase64Images($settings->fresh() ?? $settings);
 
         return response()->json([
             'success' => true,
             'message' => 'Pengaturan situs berhasil diperbarui.',
-            'data' => $settings->fresh(),
+            'data' => $settings,
         ]);
     }
 }

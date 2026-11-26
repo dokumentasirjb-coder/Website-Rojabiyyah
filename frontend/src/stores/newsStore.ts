@@ -14,19 +14,36 @@ function inlineMediaMapIntoContent(content: string, mediaMap?: Record<string, st
   return result
 }
 
+const HOME_CACHE_KEY = 'roja_home_cache'
+
+function loadCachedHome(): HomeData {
+  const empty: HomeData = {
+    hero: null,
+    highlights: [],
+    latest: [],
+    categories: [],
+    announcements: [],
+  }
+  if (typeof window === 'undefined') return empty
+  try {
+    const raw = localStorage.getItem(HOME_CACHE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object') {
+        return { ...empty, ...parsed }
+      }
+    }
+  } catch {}
+  return empty
+}
+
 export const useNewsStore = defineStore('news', () => {
   const articles = ref<Article[]>([])
   const currentArticle = ref<Article | null>(null)
   const selectedArticle = ref<Article | null>(null)
   const relatedArticles = ref<Article[]>([])
   const isModalOpen = ref(false)
-  const homeData = ref<HomeData>({
-    hero: null,
-    highlights: [],
-    latest: [],
-    categories: [],
-    announcements: [],
-  })
+  const homeData = ref<HomeData>(loadCachedHome())
 
   const pagination = ref<PaginationMeta>({
     current_page: 1,
@@ -51,6 +68,11 @@ export const useNewsStore = defineStore('news', () => {
       const response = await api.get<{ success: boolean; data: HomeData }>('/home')
       if (response.data?.data) {
         homeData.value = response.data.data
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(response.data.data))
+          } catch {}
+        }
       }
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Gagal memuat data beranda.'

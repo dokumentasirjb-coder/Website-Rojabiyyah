@@ -121,6 +121,7 @@ const filteredPhotos = computed(() => {
             :alt="photo.title"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
+            decoding="async"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 text-white">
             <span class="text-[10px] font-bold uppercase tracking-wider text-[#008f8a] bg-white px-2 py-0.5 rounded-full w-max mb-1.5">
