@@ -16,10 +16,20 @@
 }
 
 @layer base {
+  html,
+  body {
+    overflow-x: hidden;
+    overflow-y: auto !important;
+    height: auto !important;
+  }
+
+  html.lenis-stopped {
+    overflow-y: auto !important;
+  }
+
   body {
     background-color: #ffffff;
     color: #111827;
     font-family: var(--font-sans);
-    overflow-x: hidden;
   }
 }

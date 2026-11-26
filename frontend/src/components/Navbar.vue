@@ -231,7 +231,7 @@ function navigateTo(targetPath: string) {
       <div
         v-if="isMobileMenuOpen"
         @click="isMobileMenuOpen = false"
-        class="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-slate-950/40 backdrop-blur-xs z-40"
+        class="md:hidden fixed inset-x-0 top-16 sm:top-20 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] bg-slate-950/40 backdrop-blur-xs z-40"
         aria-hidden="true"
       ></div>
     </Transition>

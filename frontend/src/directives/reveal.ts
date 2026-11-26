@@ -39,30 +39,25 @@ export const vReveal: Directive<HTMLElement, RevealOptions | undefined> = {
     const duration = opts.duration ?? 0.65
 
     const rect = el.getBoundingClientRect()
-    const isAlreadyInViewport = rect.top < window.innerHeight * 0.92
+    const isAlreadyInViewport = rect.top < window.innerHeight * 0.95
 
     if (isAlreadyInViewport) {
       // Jangan pernah menyembunyikan elemen yang sudah ada di viewport saat mounted
       gsap.fromTo(
         el,
+        { y: 12 },
         {
-          opacity: 1,
-          visibility: 'visible',
-          y: Math.min(y, 12),
-        },
-        {
-          opacity: 1,
           y: 0,
-          duration: Math.min(duration, 0.45),
+          duration: 0.45,
           delay,
           ease: 'power2.out',
-          clearProps: 'transform,opacity,visibility',
+          clearProps: 'transform',
         }
       )
       return
     }
 
-    gsap.set(el, { autoAlpha: 0, y, x })
+    gsap.set(el, { opacity: 0, y, x })
 
     let revealed = false
     const cleanup: RevealCleanup = {}
@@ -80,7 +75,7 @@ export const vReveal: Directive<HTMLElement, RevealOptions | undefined> = {
       }
 
       gsap.to(el, {
-        autoAlpha: 1,
+        opacity: 1,
         y: 0,
         x: 0,
         delay,
@@ -100,14 +95,14 @@ export const vReveal: Directive<HTMLElement, RevealOptions | undefined> = {
             }
           }
         },
-        { threshold: 0.08 }
+        { threshold: 0.05 }
       )
       cleanup.observer.observe(el)
     } else {
       revealNow()
     }
 
-    // Pengaman maksimal 1.2 detik agar elemen tidak pernah tertahan di opacity: 0
+    // Pengaman maksimal 800ms agar elemen tidak pernah tertahan transparan
     cleanup.safetyTimer = setTimeout(() => {
       if (!revealed) {
         revealed = true
@@ -115,7 +110,7 @@ export const vReveal: Directive<HTMLElement, RevealOptions | undefined> = {
         cleanup.observer = undefined
         forceVisible(el)
       }
-    }, 1200)
+    }, 800)
 
     cleanupMap.set(el, cleanup)
   },
