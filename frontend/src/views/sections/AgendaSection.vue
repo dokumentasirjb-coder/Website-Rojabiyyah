@@ -37,7 +37,7 @@ function toggleAccordion(item: ScheduleItem) {
 
       <!-- Banner Header Text -->
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 relative z-10 w-full">
-        <div class="max-w-2xl space-y-4">
+        <div v-reveal="{ y: 20, duration: 0.65 }" class="max-w-2xl space-y-4">
           <span class="inline-block text-[11px] font-bold tracking-[0.2em] uppercase text-[#008f8a]">
             {{ settingsStore.settings.agenda_tag || 'JADWAL RESMI' }}
           </span>
@@ -85,7 +85,7 @@ function toggleAccordion(item: ScheduleItem) {
         <!-- Left Column: Date & Title (Screenshot 6 left) -->
         <div class="md:col-span-4 relative md:sticky md:top-36 space-y-1.5 sm:space-y-2 mb-2 md:mb-0">
           <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-[#008f8a] block">
-            {{ d.dayName.toUpperCase() }}
+            {{ (d.dayName ?? '').toUpperCase() }}
           </span>
           <h2 class="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900 leading-none">
             {{ d.fullDate }}
@@ -98,8 +98,9 @@ function toggleAccordion(item: ScheduleItem) {
         <!-- Right Column: Clean Timetable Cards (Screenshot 6 right) -->
         <div class="md:col-span-8 space-y-3">
           <div
-            v-for="(item, idx) in d.items"
+            v-for="(item, idx) in (d.items || [])"
             :key="idx"
+            v-reveal="{ y: 18, delay: (idx % 4) * 0.06 }"
             class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 transition-all shadow-2xs"
             :class="{ 'bg-slate-50/50': item.isOpen }"
           >

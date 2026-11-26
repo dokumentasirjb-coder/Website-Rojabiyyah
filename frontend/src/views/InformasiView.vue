@@ -208,7 +208,7 @@ onMounted(() => {
       <section v-show="activeTab === 'all' || activeTab === 'panduan'" class="py-16 sm:py-20 border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <!-- Header Judul & Deskripsi -->
-          <div class="max-w-3xl pb-6 border-b border-slate-200">
+          <div v-reveal="{ y: 20, duration: 0.65 }" class="max-w-3xl pb-6 border-b border-slate-200">
             <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
               <Sparkles class="w-4 h-4 text-[#008f8a]" />
               <span>Panduan Layanan & Fasilitas Jamaah</span>
@@ -245,8 +245,9 @@ onMounted(() => {
           <!-- Grid Kartu Panduan Berbasis Teks & Ikon (Tidak Wajib Foto Feed IG!) -->
           <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div
-              v-for="guide in filteredGuides"
+              v-for="(guide, idx) in filteredGuides"
               :key="guide.id"
+              v-reveal="{ y: 24, delay: (idx % 3) * 0.08 }"
               class="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs hover:shadow-lg transition-all flex flex-col justify-between group hover:border-[#008f8a]/40"
             >
               <div class="space-y-4">
@@ -303,7 +304,7 @@ onMounted(() => {
       <section v-show="activeTab === 'all' || activeTab === 'tabarukan'" class="py-16 sm:py-20 border-b border-slate-100 bg-[#f9fbfb]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <!-- Header Judul & Deskripsi -->
-          <div class="max-w-3xl pb-6 border-b border-slate-200">
+          <div v-reveal="{ y: 20, duration: 0.65 }" class="max-w-3xl pb-6 border-b border-slate-200">
             <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#008f8a] mb-2">
               <ShoppingBag class="w-4 h-4 text-[#008f8a]" />
               <span>Cinderamata & Berkah Khidmah</span>
@@ -319,8 +320,9 @@ onMounted(() => {
           <!-- Grid Feed Instagram (1:1 Square Format) -->
           <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <div
-              v-for="item in tabarukanStore.tabarukanItems"
+              v-for="(item, idx) in tabarukanStore.tabarukanItems"
               :key="item.id"
+              v-reveal="{ y: 24, delay: (idx % 4) * 0.07 }"
               @click="openDetailModal(item)"
               class="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer hover:-translate-y-1"
             >
@@ -393,8 +395,9 @@ onMounted(() => {
           <!-- Grid Kontak Panitia -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div
-              v-for="cp in tabarukanStore.cpList"
+              v-for="(cp, idx) in tabarukanStore.cpList"
               :key="cp.id"
+              v-reveal="{ y: 24, delay: (idx % 4) * 0.07 }"
               class="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs hover:shadow-lg transition-all flex flex-col justify-between group hover:border-[#008f8a]/40"
             >
               <div>

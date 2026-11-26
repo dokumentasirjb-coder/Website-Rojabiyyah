@@ -37,7 +37,7 @@ const historyParagraphs = computed<AboutParagraphItem[]>(() => {
 
       <!-- Banner Header Text -->
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 relative z-10 w-full">
-        <div class="max-w-2xl space-y-3 sm:space-y-4">
+        <div v-reveal="{ y: 20, duration: 0.65 }" class="max-w-2xl space-y-3 sm:space-y-4">
           <span class="inline-block text-[11px] font-bold tracking-[0.2em] uppercase text-[#008f8a]">
             {{ settingsStore.settings.about_tag || 'TENTANG ACARA' }}
           </span>
@@ -77,8 +77,9 @@ const historyParagraphs = computed<AboutParagraphItem[]>(() => {
           <!-- Structured Rows Dinamis (Setiap baris bisa diedit atau dihapus) -->
           <div class="border-t border-slate-200/80 divide-y divide-slate-100">
             <div 
-              v-for="item in structureItems" 
+              v-for="(item, idx) in structureItems" 
               :key="item.id"
+              v-reveal="{ y: 18, delay: (idx % 4) * 0.06 }"
               class="py-4 sm:py-5 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-6 items-baseline"
             >
               <div class="sm:col-span-5">

@@ -57,7 +57,7 @@ const filteredPhotos = computed(() => {
       </div>
 
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20 relative z-10 w-full">
-        <div class="max-w-2xl space-y-3 sm:space-y-4">
+        <div v-reveal="{ y: 20, duration: 0.65 }" class="max-w-2xl space-y-3 sm:space-y-4">
           <span class="inline-block text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase text-[#008f8a]">
             {{ settingsStore.settings.gallery_tag || 'DOKUMENTASI RESMI' }}
           </span>
@@ -110,8 +110,9 @@ const filteredPhotos = computed(() => {
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
-          v-for="photo in filteredPhotos"
+          v-for="(photo, idx) in filteredPhotos"
           :key="photo.id"
+          v-reveal="{ y: 24, delay: (idx % 3) * 0.08 }"
           @click="selectedPhoto = photo"
           class="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 cursor-pointer border border-slate-200 shadow-2xs"
         >

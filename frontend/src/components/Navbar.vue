@@ -9,6 +9,15 @@ const route = useRoute()
 const settingsStore = useSettingsStore()
 const isMobileMenuOpen = ref(false)
 
+const mobileNavItems = [
+  { id: 'beranda', label: 'Beranda', path: '/' },
+  { id: 'tentang', label: 'Tentang', path: '/tentang' },
+  { id: 'agenda', label: 'Agenda', path: '/agenda' },
+  { id: 'berita', label: 'Berita', path: '/berita' },
+  { id: 'galeri', label: 'Galeri', path: '/galeri' },
+  { id: 'informasi', label: 'Informasi Umum', path: '/informasi' },
+]
+
 const currentTab = computed(() => {
   const p = route.path
   if (p === '/tentang') return 'tentang'
@@ -82,19 +91,17 @@ function navigateTo(targetPath: string) {
             />
           </div>
 
-          <!-- Fallback Badge Emblem (When no custom logo is uploaded) -->
+          <!-- Fallback Emblem Rojabiyyah (When no custom logo is uploaded) -->
           <div
             v-else
             class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center p-0.5 shrink-0 shadow-2xs overflow-hidden"
             :class="[isDarkNavbar ? 'border-white/20 bg-white/10' : 'border-slate-200 bg-white']"
           >
-            <svg viewBox="0 0 100 100" class="w-full h-full">
-              <circle cx="50" cy="50" r="46" :fill="isDarkNavbar ? '#0f172a' : '#f8fafc'" stroke="#008f8a" stroke-width="4" stroke-dasharray="180 50" />
-              <circle cx="50" cy="50" r="36" fill="none" stroke="#b38856" stroke-width="3" />
-              <text x="50" y="58" font-family="sans-serif" font-size="28" font-weight="900" fill="#008f8a" text-anchor="middle">
-                {{ settingsStore.settings.navbar_badge || '35' }}
-              </text>
-            </svg>
+            <img
+              src="/favicon.svg"
+              :alt="settingsStore.settings?.site_title || 'Panitia Rojabiyyah & Haul Abah Ke-5'"
+              class="w-full h-full object-contain rounded-full"
+            />
           </div>
 
           <div class="flex flex-col min-w-0">
@@ -204,114 +211,106 @@ function navigateTo(targetPath: string) {
             @click="isMobileMenuOpen = !isMobileMenuOpen"
             class="p-2 rounded-xl transition-colors cursor-pointer"
             :class="[isDarkNavbar ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100']"
+            :aria-expanded="isMobileMenuOpen"
             aria-label="Buka Menu"
           >
-            <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
-            <X v-else class="w-6 h-6 text-[#008f8a]" />
+            <span
+              class="inline-flex items-center justify-center transition-transform duration-300"
+              :class="isMobileMenuOpen ? 'rotate-90' : 'rotate-0'"
+            >
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6 transition-opacity duration-200" />
+              <X v-else class="w-6 h-6 text-[#008f8a] transition-opacity duration-200" />
+            </span>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- Mobile Menu Backdrop -->
+    <Transition name="mobile-backdrop">
+      <div
+        v-if="isMobileMenuOpen"
+        @click="isMobileMenuOpen = false"
+        class="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-slate-950/40 backdrop-blur-xs z-40"
+        aria-hidden="true"
+      ></div>
+    </Transition>
+
     <!-- Mobile Drawer Menu (Navigates to Individual Pages) -->
-    <div
-      v-if="isMobileMenuOpen"
-      class="md:hidden border-b px-4 pt-3 pb-6 space-y-2 shadow-lg animate-in slide-in-from-top duration-200"
-      :style="{
-        backgroundColor: navbarBackground,
-        borderBottomColor: isDarkNavbar ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0'
-      }"
-    >
-      <button
-        type="button"
-        @click="navigateTo('/')"
-        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
-        :class="[
-          currentTab === 'beranda'
-            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
-            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
-        ]"
+    <Transition name="mobile-nav">
+      <div
+        v-if="isMobileMenuOpen"
+        class="md:hidden relative z-50 border-b px-4 pt-3 pb-6 space-y-2 shadow-lg"
+        :style="{
+          backgroundColor: navbarBackground,
+          borderBottomColor: isDarkNavbar ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0'
+        }"
       >
-        <span>Beranda</span>
-        <span v-if="currentTab === 'beranda'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
-      </button>
+        <button
+          v-for="(item, index) in mobileNavItems"
+          :key="item.id"
+          type="button"
+          @click="navigateTo(item.path)"
+          :style="{ animationDelay: `${index * 45}ms` }"
+          class="mobile-nav-item w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer"
+          :class="[
+            currentTab === item.id
+              ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
+              : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
+          ]"
+        >
+          <span>{{ item.label }}</span>
+          <span v-if="currentTab === item.id" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
+        </button>
 
-      <button
-        type="button"
-        @click="navigateTo('/tentang')"
-        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
-        :class="[
-          currentTab === 'tentang'
-            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
-            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
-        ]"
-      >
-        <span>Tentang</span>
-        <span v-if="currentTab === 'tentang'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
-      </button>
-
-      <button
-        type="button"
-        @click="navigateTo('/agenda')"
-        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
-        :class="[
-          currentTab === 'agenda'
-            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
-            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
-        ]"
-      >
-        <span>Agenda</span>
-        <span v-if="currentTab === 'agenda'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
-      </button>
-
-      <button
-        type="button"
-        @click="navigateTo('/berita')"
-        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
-        :class="[
-          currentTab === 'berita'
-            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
-            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
-        ]"
-      >
-        <span>Berita</span>
-        <span v-if="currentTab === 'berita'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
-      </button>
-
-      <button
-        type="button"
-        @click="navigateTo('/galeri')"
-        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
-        :class="[
-          currentTab === 'galeri'
-            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
-            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
-        ]"
-      >
-        <span>Galeri</span>
-        <span v-if="currentTab === 'galeri'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
-      </button>
-
-      <button
-        type="button"
-        @click="navigateTo('/informasi')"
-        class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-between"
-        :class="[
-          currentTab === 'informasi'
-            ? (isDarkNavbar ? 'bg-white/20 text-white' : 'bg-[#008f8a]/10 text-[#008f8a]')
-            : (isDarkNavbar ? 'text-white/80 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50')
-        ]"
-      >
-        <span>Informasi Umum</span>
-        <span v-if="currentTab === 'informasi'" class="w-1.5 h-1.5 rounded-full" :class="[isDarkNavbar ? 'bg-white' : 'bg-[#008f8a]']"></span>
-      </button>
-
-      <div 
-        class="pt-3 border-t flex items-center justify-end px-2 text-xs"
-        :class="[isDarkNavbar ? 'border-white/10 text-white/70' : 'border-slate-100 text-slate-500']"
-      >
-        <span>Jombang 2026</span>
+        <div 
+          class="pt-3 border-t flex items-center justify-end px-2 text-xs"
+          :class="[isDarkNavbar ? 'border-white/10 text-white/70' : 'border-slate-100 text-slate-500']"
+        >
+          <span>Jombang 2026</span>
+        </div>
       </div>
-    </div>
+    </Transition>
   </header>
 </template>
+
+<style scoped>
+.mobile-nav-enter-active,
+.mobile-nav-leave-active {
+  transition:
+    opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top;
+}
+
+.mobile-nav-enter-from,
+.mobile-nav-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scaleY(0.97);
+}
+
+.mobile-backdrop-enter-active,
+.mobile-backdrop-leave-active {
+  transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-backdrop-enter-from,
+.mobile-backdrop-leave-to {
+  opacity: 0;
+}
+
+@keyframes mobileNavItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-nav-item {
+  animation: mobileNavItemIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+</style>

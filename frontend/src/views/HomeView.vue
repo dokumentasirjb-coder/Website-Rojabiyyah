@@ -53,17 +53,19 @@ function setupScrollspy() {
   })
 }
 
-onMounted(() => {
-  settingsStore.fetchSettings()
-  newsStore.fetchHome()
-  newsStore.fetchArticles()
+onMounted(async () => {
+  await Promise.allSettled([
+    settingsStore.fetchSettings?.(),
+    newsStore.fetchHome?.(),
+    newsStore.fetchArticles?.(),
+  ])
 
   nextTick(() => {
     setupScrollspy()
 
     // Handle initial hash or route path
-    const path = route.path.replace('/', '')
-    const hash = window.location.hash.replace('#', '')
+    const path = (route.path || '').replace('/', '')
+    const hash = (window.location.hash || '').replace('#', '')
     const target = hash || path
 
     if (target && sectionIds.includes(target)) {
@@ -94,22 +96,22 @@ onUnmounted(() => {
       </section>
 
       <!-- 2. Tentang -->
-      <section id="tentang" class="scroll-mt-20">
+      <section id="tentang" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
         <TentangSection />
       </section>
 
       <!-- 3. Agenda -->
-      <section id="agenda" class="scroll-mt-20">
+      <section id="agenda" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
         <AgendaSection />
       </section>
 
       <!-- 4. Berita -->
-      <section id="berita" class="scroll-mt-20">
+      <section id="berita" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
         <BeritaSection />
       </section>
 
       <!-- 5. Galeri -->
-      <section id="galeri" class="scroll-mt-20">
+      <section id="galeri" v-reveal="{ y: 24, duration: 0.65 }" class="scroll-mt-20">
         <GaleriSection />
       </section>
     </main>

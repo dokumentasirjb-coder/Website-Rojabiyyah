@@ -51,18 +51,16 @@ function handleNav(targetPath: string) {
               />
             </div>
 
-            <!-- Fallback Badge Emblem (When no custom logo is uploaded) -->
+            <!-- Fallback Emblem Rojabiyyah (When no custom logo is uploaded) -->
             <div
               v-else
-              class="w-11 h-11 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center p-0.5 shrink-0 shadow-sm"
+              class="w-11 h-11 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center p-0.5 shrink-0 shadow-sm overflow-hidden"
             >
-              <svg viewBox="0 0 100 100" class="w-full h-full">
-                <circle cx="50" cy="50" r="46" fill="#1e293b" stroke="#008f8a" stroke-width="4" stroke-dasharray="180 50" />
-                <circle cx="50" cy="50" r="36" fill="none" stroke="#b38856" stroke-width="3" />
-                <text x="50" y="58" font-family="sans-serif" font-size="28" font-weight="900" fill="#008f8a" text-anchor="middle">
-                  {{ settingsStore.settings.navbar_badge || '35' }}
-                </text>
-              </svg>
+              <img
+                src="/favicon.svg"
+                :alt="settingsStore.settings?.site_title || 'Panitia Rojabiyyah & Haul Abah Ke-5'"
+                class="w-full h-full object-contain rounded-full"
+              />
             </div>
             <div>
               <span class="font-bold text-lg text-white block leading-none">
