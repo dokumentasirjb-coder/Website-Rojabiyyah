@@ -25,6 +25,8 @@ class Article extends Model
         'cover_image',
         'category_id',
         'user_id',
+        'author_name',
+        'author_role',
         'status',
         'is_featured',
         'published_at',

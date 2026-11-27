@@ -38,6 +38,8 @@ export interface Article {
   created_at_formatted: string | null
   category?: Category
   author?: Author
+  author_name?: string | null
+  author_role?: string | null
   tags?: string[] | string
   metaTitle?: string
   metaDescription?: string

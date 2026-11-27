@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/lib/axios'
-import type { Article, HomeData, PaginationMeta } from '@/types'
+import type { Article, Category, HomeData, PaginationMeta } from '@/types'
 
 function inlineMediaMapIntoContent(content: string, mediaMap?: Record<string, string>): string {
   if (!content || !mediaMap) return content
@@ -39,6 +39,7 @@ function loadCachedHome(): HomeData {
 
 export const useNewsStore = defineStore('news', () => {
   const articles = ref<Article[]>([])
+  const categories = ref<Category[]>([])
   const currentArticle = ref<Article | null>(null)
   const selectedArticle = ref<Article | null>(null)
   const relatedArticles = ref<Article[]>([])
@@ -85,6 +86,9 @@ export const useNewsStore = defineStore('news', () => {
 
   async function fetchArticles(page = 1, category = activeCategory.value, search = searchQuery.value, force = false) {
     if (inFlightArticlesFetch && !force) return inFlightArticlesFetch
+    if (categories.value.length === 0) {
+      fetchCategories()
+    }
 
     inFlightArticlesFetch = (async () => {
       isLoadingArticles.value = true
@@ -147,21 +151,39 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
+  async function fetchCategories() {
+    try {
+      const response = await api.get<{ data: Category[] }>('/categories')
+      if (Array.isArray(response.data?.data)) {
+        categories.value = response.data.data
+      }
+    } catch {
+      // Graceful fallback: categories remain derived from loaded articles
+    }
+  }
+
   async function saveArticle(
-    articleData: Partial<Article> & { title: string; id?: number; category_id?: number }
+    articleData: Partial<Article> & { title: string; id?: number; category_id?: number; category_name?: string }
   ): Promise<{ success: boolean; message?: string }> {
     isSaving.value = true
     error.value = null
     try {
       const resolvedContent = inlineMediaMapIntoContent(articleData.content || '', articleData.mediaMap)
-      const payload = {
+      const categoryName = (articleData.category_name || articleData.category?.name || '').trim()
+      const authorName = (articleData.author_name || articleData.author?.name || '').trim()
+      const authorRole = (articleData.author_role || articleData.author?.role || '').trim()
+
+      const payload: Record<string, any> = {
         title: articleData.title.trim(),
-        category_id: articleData.category_id || articleData.category?.id || 1,
+        category_id: articleData.category_id || articleData.category?.id || undefined,
+        category_name: categoryName || undefined,
         content: resolvedContent,
         excerpt: articleData.excerpt || '',
         status: articleData.status || 'published',
         is_featured: Boolean(articleData.is_featured),
         cover_image: articleData.cover_image || articleData.cover_image_url || '',
+        author_name: authorName || undefined,
+        author_role: authorRole || undefined,
       }
 
       if (articleData.id) {
@@ -170,7 +192,10 @@ export const useNewsStore = defineStore('news', () => {
         await api.post('/admin/articles', payload)
       }
 
-      await fetchArticles(1, activeCategory.value, searchQuery.value, true)
+      await Promise.all([
+        fetchArticles(1, activeCategory.value, searchQuery.value, true),
+        fetchCategories(),
+      ])
       return {
         success: true,
         message: payload.status === 'published' ? 'Berita berhasil diterbitkan ke database!' : 'Draf berita berhasil disimpan!',
@@ -261,6 +286,7 @@ export const useNewsStore = defineStore('news', () => {
 
   return {
     articles,
+    categories,
     currentArticle,
     selectedArticle,
     relatedArticles,
@@ -276,6 +302,7 @@ export const useNewsStore = defineStore('news', () => {
     error,
     fetchHome,
     fetchArticles,
+    fetchCategories,
     fetchArticleBySlug,
     saveArticle,
     deleteArticle,

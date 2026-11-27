@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ArticleResource;
 use App\Models\Article;
+use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -47,14 +49,30 @@ class AdminArticleController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'title'       => ['required', 'string', 'max:255'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'content'     => ['required', 'string'],
-            'excerpt'     => ['nullable', 'string', 'max:500'],
-            'status'      => ['required', 'in:draft,published,archived'],
-            'is_featured' => ['nullable', 'boolean'],
-            'cover_image' => ['nullable'],
+            'title'         => ['required', 'string', 'max:255'],
+            'category_id'   => ['nullable', 'integer', 'exists:categories,id'],
+            'category_name' => ['nullable', 'string', 'max:100'],
+            'content'       => ['required', 'string'],
+            'excerpt'       => ['nullable', 'string', 'max:500'],
+            'status'        => ['required', 'in:draft,published,archived'],
+            'is_featured'   => ['nullable', 'boolean'],
+            'cover_image'   => ['nullable'],
+            'author_name'   => ['nullable', 'string', 'max:120'],
+            'author_role'   => ['nullable', 'string', 'max:120'],
         ]);
+
+        $validated['category_id'] = $this->resolveCategoryId(
+            $validated['category_id'] ?? null,
+            $validated['category_name'] ?? null
+        );
+        unset($validated['category_name']);
+
+        if (! Schema::hasColumn('articles', 'author_name')) {
+            unset($validated['author_name']);
+        }
+        if (! Schema::hasColumn('articles', 'author_role')) {
+            unset($validated['author_role']);
+        }
 
         // Handle upload cover image
         if ($request->hasFile('cover_image')) {
@@ -120,14 +138,32 @@ class AdminArticleController extends Controller
         $article = Article::findOrFail($id);
 
         $validated = $request->validate([
-            'title'       => ['sometimes', 'required', 'string', 'max:255'],
-            'category_id' => ['sometimes', 'required', 'integer', 'exists:categories,id'],
-            'content'     => ['sometimes', 'required', 'string'],
-            'excerpt'     => ['nullable', 'string', 'max:500'],
-            'status'      => ['sometimes', 'required', 'in:draft,published,archived'],
-            'is_featured' => ['nullable', 'boolean'],
-            'cover_image' => ['nullable'],
+            'title'         => ['sometimes', 'required', 'string', 'max:255'],
+            'category_id'   => ['nullable', 'integer', 'exists:categories,id'],
+            'category_name' => ['nullable', 'string', 'max:100'],
+            'content'       => ['sometimes', 'required', 'string'],
+            'excerpt'       => ['nullable', 'string', 'max:500'],
+            'status'        => ['sometimes', 'required', 'in:draft,published,archived'],
+            'is_featured'   => ['nullable', 'boolean'],
+            'cover_image'   => ['nullable'],
+            'author_name'   => ['nullable', 'string', 'max:120'],
+            'author_role'   => ['nullable', 'string', 'max:120'],
         ]);
+
+        if (! empty($validated['category_name']) || ! empty($validated['category_id'])) {
+            $validated['category_id'] = $this->resolveCategoryId(
+                $validated['category_id'] ?? $article->category_id,
+                $validated['category_name'] ?? null
+            );
+        }
+        unset($validated['category_name']);
+
+        if (! Schema::hasColumn('articles', 'author_name')) {
+            unset($validated['author_name']);
+        }
+        if (! Schema::hasColumn('articles', 'author_role')) {
+            unset($validated['author_role']);
+        }
 
         // Update cover image jika berkas baru dikirim
         if ($request->hasFile('cover_image')) {
@@ -228,5 +264,38 @@ class AdminArticleController extends Controller
         }
 
         return $slug;
+    }
+
+    /**
+     * Sinkronkan category_name dari admin ke tabel categories agar kategori baru otomatis tersimpan.
+     */
+    private function resolveCategoryId(?int $categoryId, ?string $categoryName): int
+    {
+        $cleanName = trim((string) $categoryName);
+        if ($cleanName !== '') {
+            $slug = Str::slug($cleanName) ?: 'kategori-' . time();
+            $category = Category::firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'name'       => $cleanName,
+                    'color'      => '#008f8a',
+                    'sort_order' => ((int) Category::max('sort_order')) + 1,
+                    'is_active'  => true,
+                ]
+            );
+            return $category->id;
+        }
+
+        if ($categoryId) {
+            return $categoryId;
+        }
+
+        return (int) (Category::query()->value('id') ?? Category::create([
+            'name'       => 'Berita',
+            'slug'       => 'berita',
+            'color'      => '#008f8a',
+            'sort_order' => 1,
+            'is_active'  => true,
+        ])->id);
     }
 }

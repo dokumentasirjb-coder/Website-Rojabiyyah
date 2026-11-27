@@ -290,14 +290,14 @@ watch(() => route.params.slug, async (newSlug) => {
         <!-- Author Byline -->
         <div class="flex items-center gap-3 pb-8 mb-8 border-b border-slate-100">
           <div class="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center font-bold text-xs text-[#008f8a] uppercase shadow-2xs">
-            {{ currentArticle.author?.name?.charAt(0) || 'A' }}
+            {{ (currentArticle.author_name || currentArticle.author?.name || 'A').charAt(0) }}
           </div>
           <div>
             <span class="block text-xs sm:text-sm font-bold text-slate-900">
-              {{ currentArticle.author?.name || 'Admin Redaksi' }}
+              {{ currentArticle.author_name || currentArticle.author?.name || 'Admin Redaksi' }}
             </span>
             <span class="block text-[11px] text-slate-500 font-normal">
-              {{ currentArticle.author?.role || 'Redaktur' }}
+              {{ currentArticle.author_role || currentArticle.author?.role || 'Redaktur' }}
             </span>
           </div>
         </div>

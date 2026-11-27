@@ -33,6 +33,22 @@ class ArticleResource extends JsonResource
                 : asset('storage/' . ltrim($this->cover_image, '/'));
         }
 
+        $attributes = $this->resource?->getAttributes() ?? [];
+        $loadedAuthor = $this->whenLoaded('author');
+        $fallbackName = ($loadedAuthor && !($loadedAuthor instanceof \Illuminate\Http\Resources\MissingValue))
+            ? ($loadedAuthor->name ?? null)
+            : null;
+        $fallbackRole = ($loadedAuthor && !($loadedAuthor instanceof \Illuminate\Http\Resources\MissingValue))
+            ? ($loadedAuthor->role ?? null)
+            : null;
+
+        $authorName = !empty($attributes['author_name'])
+            ? $attributes['author_name']
+            : ($fallbackName ?: 'Admin Redaksi');
+        $authorRole = !empty($attributes['author_role'])
+            ? $attributes['author_role']
+            : ($fallbackRole ?: 'Redaktur');
+
         return [
             'id'                   => $this->id,
             'title'                => $this->title,
@@ -47,6 +63,8 @@ class ArticleResource extends JsonResource
             'is_featured'          => (bool) $this->is_featured,
             'status'               => $this->status,
             'view_count'           => (int) $this->view_count,
+            'author_name'          => $authorName,
+            'author_role'          => $authorRole,
 
             // Waktu baca
             'reading_time'         => "{$readingMinutes} menit baca",
@@ -62,7 +80,15 @@ class ArticleResource extends JsonResource
 
             // Eager Loaded Relationships
             'category'             => new CategoryResource($this->whenLoaded('category')),
-            'author'               => new AuthorResource($this->whenLoaded('author')),
+            'author'               => [
+                'id'     => ($loadedAuthor && !($loadedAuthor instanceof \Illuminate\Http\Resources\MissingValue)) ? $loadedAuthor->id : ($this->user_id ?? 1),
+                'name'   => $authorName,
+                'role'   => $authorRole,
+                'avatar' => ($loadedAuthor && !($loadedAuthor instanceof \Illuminate\Http\Resources\MissingValue) && $loadedAuthor->avatar)
+                    ? asset('storage/' . $loadedAuthor->avatar)
+                    : null,
+                'bio'    => ($loadedAuthor && !($loadedAuthor instanceof \Illuminate\Http\Resources\MissingValue)) ? ($loadedAuthor->bio ?? null) : null,
+            ],
         ];
     }
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Newspaper, Eye, TrendingUp } from 'lucide-vue-next'
+import { Newspaper, Eye, TrendingUp, User } from 'lucide-vue-next'
 import { useNewsStore } from '@/stores/newsStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import type { Article } from '@/types'
@@ -12,17 +12,23 @@ const settingsStore = useSettingsStore()
 
 const activeCategory = ref<string>('semua')
 
+onMounted(() => {
+  newsStore.fetchCategories()
+})
+
 // Hanya tampilkan berita yang berstatus Terbit (published) di halaman publik
 const publishedArticles = computed(() => {
   return (newsStore.articles || []).filter((a) => a.status === 'published')
 })
 
-const BASE_CATEGORIES = ['Pengumuman', 'Liputan', 'Rojabiyyah & Haul']
-
+// 100% dinamis dari database (/api/v1/categories & artikel aktif) tanpa hardcoded
 const categoryOptions = computed(() => {
   const seen = new Map<string, string>()
-  for (const name of BASE_CATEGORIES) {
-    seen.set(name.toLowerCase(), name)
+  for (const cat of newsStore.categories || []) {
+    const name = cat?.name?.trim()
+    if (name && !seen.has(name.toLowerCase())) {
+      seen.set(name.toLowerCase(), name)
+    }
   }
   for (const article of publishedArticles.value) {
     const catName = article.category?.name?.trim()
@@ -193,6 +199,16 @@ function handleArticleClick(article: Article) {
                 <p class="text-xs sm:text-[13px] text-slate-500 line-clamp-3 font-normal leading-relaxed">
                   {{ article.excerpt }}
                 </p>
+
+                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500">
+                  <User class="w-3.5 h-3.5 text-[#008f8a] shrink-0" />
+                  <span class="font-semibold text-slate-700 truncate">
+                    {{ article.author_name || article.author?.name || 'Admin Redaksi' }}
+                  </span>
+                  <span v-if="article.author_role || article.author?.role" class="text-slate-400 truncate">
+                    • {{ article.author_role || article.author?.role }}
+                  </span>
+                </div>
               </div>
             </article>
           </div>

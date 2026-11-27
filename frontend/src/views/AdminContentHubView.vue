@@ -854,8 +854,8 @@ function openEditArticle(art: Article) {
   articleForm.title = art.title || ''
   articleForm.slug = art.slug || ''
   articleForm.isSlugCustom = true
-  articleForm.authorName = art.author?.name || 'Admin Redaksi'
-  articleForm.authorRole = art.author?.role || 'Redaktur'
+  articleForm.authorName = art.author_name || art.author?.name || 'Admin Redaksi'
+  articleForm.authorRole = art.author_role || art.author?.role || 'Redaktur'
   articleForm.excerpt = art.excerpt || ''
   articleForm.content = art.content || ''
   articleForm.mediaMap = art.mediaMap ? { ...art.mediaMap } : {}
@@ -2796,9 +2796,13 @@ async function saveSettings(tabLabel: string) {
                 <input
                   v-model="articleForm.categoryName"
                   type="text"
-                  placeholder="Contoh: LIPUTAN / KEGIATAN"
+                  list="admin-news-categories"
+                  placeholder="Contoh: Liputan / Pengumuman"
                   class="w-full px-4 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
+                <datalist id="admin-news-categories">
+                  <option v-for="cat in newsStore.categories" :key="cat.id" :value="cat.name" />
+                </datalist>
               </div>
 
               <div>
@@ -2992,9 +2996,13 @@ async function saveSettings(tabLabel: string) {
                 class="px-3 py-2 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
               >
                 <option value="all">Semua kategori</option>
-                <option value="liputan">Liputan</option>
-                <option value="berita">Berita</option>
-                <option value="kegiatan">Kegiatan</option>
+                <option
+                  v-for="cat in newsStore.categories"
+                  :key="cat.id"
+                  :value="cat.name.toLowerCase()"
+                >
+                  {{ cat.name }}
+                </option>
               </select>
 
               <button
