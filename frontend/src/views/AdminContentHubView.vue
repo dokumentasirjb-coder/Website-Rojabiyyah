@@ -584,6 +584,124 @@ const isEditingArticle = ref(false)
 const newsSearch = ref('')
 const newsStatusFilter = ref('all')
 const newsCategoryFilter = ref('all')
+const newNewsCategoryInput = ref('')
+const isManagingCategory = ref(false)
+
+async function handleAddNewsCategory() {
+  const name = newNewsCategoryInput.value.trim()
+  if (!name) return
+  isManagingCategory.value = true
+  const res = await newsStore.createCategory(name)
+  isManagingCategory.value = false
+  if (res.success) {
+    newNewsCategoryInput.value = ''
+    toastMessage.value = res.message || `Kategori "${name}" berhasil ditambahkan!`
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3500)
+  } else {
+    uiStore.notify(res.message || 'Gagal menambah kategori.', 'error')
+  }
+}
+
+async function handleDeleteNewsCategory(cat: { id: number; name: string }) {
+  if (!(await uiStore.askConfirm(`Hapus kategori "${cat.name}"? Artikel yang memakai kategori ini akan dialihkan otomatis agar tidak error.`))) {
+    return
+  }
+  const res = await newsStore.deleteCategory(cat.id)
+  if (res.success) {
+    toastMessage.value = res.message || `Kategori "${cat.name}" berhasil dihapus!`
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3500)
+  } else {
+    uiStore.notify(res.message || 'Gagal menghapus kategori.', 'error')
+  }
+}
+
+// Denah Zona Parkir & Posko Layanan Jamaah (SiteSetting parking_zones_json)
+const PARKING_CATEGORIES = [
+  'Parkir Roda 2',
+  'Parkir Roda 4/Bus',
+  'Posko Kesehatan & Keamanan',
+  'Pintu Masuk & Konsumsi',
+] as const
+
+const parkingZonesList = computed<any[]>(() => {
+  const list = settingsStore.settings.parking_zones_json
+  return Array.isArray(list) ? list : []
+})
+
+const isParkingModalOpen = ref(false)
+const parkingForm = reactive({
+  id: '',
+  category: 'Parkir Roda 2',
+  title: '',
+  capacity: '',
+  description: '',
+  maps_url: '',
+})
+
+function openAddParkingZone() {
+  parkingForm.id = ''
+  parkingForm.category = 'Parkir Roda 2'
+  parkingForm.title = ''
+  parkingForm.capacity = ''
+  parkingForm.description = ''
+  parkingForm.maps_url = ''
+  isParkingModalOpen.value = true
+}
+
+function openEditParkingZone(zone: any) {
+  parkingForm.id = zone.id || ''
+  parkingForm.category = zone.category || 'Parkir Roda 2'
+  parkingForm.title = zone.title || ''
+  parkingForm.capacity = zone.capacity || ''
+  parkingForm.description = zone.description || ''
+  parkingForm.maps_url = zone.maps_url || ''
+  isParkingModalOpen.value = true
+}
+
+async function saveParkingZone() {
+  if (!parkingForm.title.trim()) {
+    uiStore.notify('Nama titik parkir/posko wajib diisi.', 'warning')
+    return
+  }
+  const next = [...parkingZonesList.value]
+  const payload = {
+    id: parkingForm.id || `zone-${Date.now()}`,
+    category: parkingForm.category,
+    title: parkingForm.title.trim(),
+    capacity: parkingForm.capacity.trim(),
+    description: parkingForm.description.trim(),
+    maps_url: parkingForm.maps_url.trim(),
+  }
+  if (parkingForm.id) {
+    const idx = next.findIndex((z) => z.id === parkingForm.id)
+    if (idx >= 0) next[idx] = payload
+    else next.push(payload)
+  } else {
+    next.push(payload)
+  }
+  const res = await settingsStore.updateSettings({ parking_zones_json: next })
+  if (res.success) {
+    isParkingModalOpen.value = false
+    toastMessage.value = 'Titik zona parkir/posko berhasil disimpan!'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3500)
+  } else {
+    uiStore.notify(res.message || 'Gagal menyimpan zona parkir.', 'error')
+  }
+}
+
+async function deleteParkingZone(zone: any) {
+  if (!(await uiStore.askConfirm(`Hapus titik "${zone.title}"?`))) return
+  const next = parkingZonesList.value.filter((z) => z.id !== zone.id)
+  const res = await settingsStore.updateSettings({ parking_zones_json: next })
+  if (res.success) {
+    toastMessage.value = 'Titik zona parkir/posko berhasil dihapus!'
+    showToast.value = true
+    setTimeout(() => { showToast.value = false }, 3500)
+  }
+}
 
 const articleForm = reactive({
   id: undefined as number | undefined,
@@ -1511,23 +1629,34 @@ async function saveSettings(tabLabel: string) {
         </div>
       </div>
 
-      <!-- Toast Notification -->
-      <div
-        v-if="showToast"
-        class="p-4 rounded-2xl bg-[#0d3326] border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between gap-3 shadow-lg animate-in fade-in"
-      >
-        <div class="flex items-center gap-2">
-          <CheckCircle2 class="w-4 h-4 text-emerald-400 shrink-0" />
-          <span class="font-medium">{{ toastMessage }}</span>
-        </div>
-        <a
-          href="/"
-          target="_blank"
-          class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:underline"
+      <!-- Floating Toast Notification (Always visible without scrolling) -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-2"
         >
-          Lihat Situs <ExternalLink class="w-3 h-3" />
-        </a>
-      </div>
+          <div
+            v-if="showToast"
+            class="fixed bottom-5 right-5 z-[99999] max-w-sm w-[calc(100%-2.5rem)] p-4 rounded-2xl bg-emerald-600 border border-emerald-500 text-white text-xs flex items-center justify-between gap-3 shadow-xl"
+          >
+            <div class="flex items-center gap-2.5">
+              <CheckCircle2 class="w-5 h-5 text-white shrink-0" />
+              <span class="font-semibold leading-snug">{{ toastMessage }}</span>
+            </div>
+            <a
+              href="/"
+              target="_blank"
+              class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-100 hover:text-white underline shrink-0"
+            >
+              Lihat <ExternalLink class="w-3 h-3" />
+            </a>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Navigation Pill Tabs (Only visible when not in sub-form) -->
       <div v-show="!(activeTab === 'berita' && newsMode === 'form')" class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar text-xs">
@@ -3034,6 +3163,58 @@ async function saveSettings(tabLabel: string) {
             </div>
           </div>
 
+          <!-- Kelola Kategori Berita (Tambah Manual & Hapus Aman) -->
+          <div class="bg-[#0b211a] border border-[#143d30] rounded-2xl p-4 sm:p-5 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  Kelola Kategori Berita
+                </h4>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  Tambah kategori baru secara manual atau hapus kategori yang tidak digunakan.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model="newNewsCategoryInput"
+                  type="text"
+                  placeholder="Nama kategori baru..."
+                  @keyup.enter="handleAddNewsCategory"
+                  class="px-3 py-1.5 rounded-xl bg-[#071913] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-500 w-44 sm:w-52"
+                />
+                <button
+                  type="button"
+                  :disabled="isManagingCategory"
+                  @click="handleAddNewsCategory"
+                  class="px-3 py-1.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white text-xs font-bold cursor-pointer shrink-0 disabled:opacity-50"
+                >
+                  + Tambah
+                </button>
+              </div>
+            </div>
+
+            <div v-if="newsStore.categories.length > 0" class="flex flex-wrap items-center gap-2 pt-1">
+              <span
+                v-for="cat in newsStore.categories"
+                :key="cat.id"
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#071913] border border-[#143d30] text-xs font-medium text-slate-200"
+              >
+                <span>{{ cat.name }}</span>
+                <button
+                  type="button"
+                  @click="handleDeleteNewsCategory(cat)"
+                  class="text-slate-400 hover:text-rose-400 cursor-pointer leading-none font-bold"
+                  :title="`Hapus kategori ${cat.name}`"
+                >
+                  &times;
+                </button>
+              </span>
+            </div>
+            <p v-else class="text-[11px] text-slate-400 italic">
+              Belum ada kategori tersimpan di database.
+            </p>
+          </div>
+
           <!-- Total Count Info -->
           <div class="text-xs text-slate-400 px-1">
             Menampilkan <strong class="text-white">{{ filteredArticles.length }}</strong> berita sesuai filter.
@@ -4331,6 +4512,152 @@ async function saveSettings(tabLabel: string) {
               </div>
             </div>
           </div>
+
+          <!-- Denah Zona Parkir & Posko Layanan Jamaah -->
+          <div class="pt-6 border-t border-[#143d30] space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-white">
+                  Denah Zona Parkir &amp; Posko Layanan Jamaah ({{ parkingZonesList.length }} titik)
+                </h3>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  Atur titik parkir Roda 2, Roda 4/Bus, Posko Kesehatan &amp; Keamanan, serta Pintu Masuk di halaman /informasi.
+                </p>
+              </div>
+              <button
+                type="button"
+                @click="openAddParkingZone"
+                class="px-3.5 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <Plus class="w-4 h-4" />
+                <span>Tambah Titik Parkir / Posko</span>
+              </button>
+            </div>
+
+            <div v-if="parkingZonesList.length === 0" class="p-6 rounded-2xl bg-[#071913] border border-dashed border-[#143d30] text-center text-xs text-slate-400">
+              Belum ada titik khusus. Halaman publik akan menampilkan data default Pondok Pesantren Bahrul Ulum Tambakberas.
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="zone in parkingZonesList"
+                :key="zone.id"
+                class="p-4 rounded-2xl bg-[#071913] border border-[#143d30] flex flex-col justify-between gap-3"
+              >
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold uppercase">
+                      {{ zone.category }}
+                    </span>
+                    <span v-if="zone.capacity" class="text-[11px] text-slate-400">{{ zone.capacity }}</span>
+                  </div>
+                  <h4 class="text-sm font-bold text-white">{{ zone.title }}</h4>
+                  <p class="text-xs text-slate-400 line-clamp-2">{{ zone.description }}</p>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#143d30]">
+                  <button
+                    type="button"
+                    @click="openEditParkingZone(zone)"
+                    class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 class="w-3.5 h-3.5" />
+                    <span>Ubah</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="deleteParkingZone(zone)"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                    title="Hapus"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Add/Edit Zona Parkir & Posko -->
+    <div
+      v-if="isParkingModalOpen"
+      class="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4"
+      @click.self="isParkingModalOpen = false"
+    >
+      <div class="bg-[#0b211a] border border-[#143d30] rounded-3xl max-w-lg w-full p-6 space-y-4 text-white">
+        <div class="flex items-center justify-between border-b border-[#143d30] pb-3">
+          <h3 class="text-sm font-bold">
+            {{ parkingForm.id ? 'Ubah Titik Zona Parkir / Posko' : 'Tambah Titik Zona Parkir / Posko' }}
+          </h3>
+          <button type="button" @click="isParkingModalOpen = false" class="text-slate-400 hover:text-white cursor-pointer">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold mb-1">Kategori Titik</label>
+            <select
+              v-model="parkingForm.category"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-white focus:outline-none focus:border-emerald-500"
+            >
+              <option v-for="pc in PARKING_CATEGORIES" :key="pc" :value="pc">{{ pc }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Nama Titik</label>
+            <input
+              v-model="parkingForm.title"
+              type="text"
+              placeholder="Contoh: Zona Parkir Motor Halaman Madrasah Utara"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-white focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Kapasitas / Info Singkat</label>
+            <input
+              v-model="parkingForm.capacity"
+              type="text"
+              placeholder="Contoh: Kapasitas ± 800 Motor"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-white focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Keterangan Lokasi</label>
+            <textarea
+              v-model="parkingForm.description"
+              rows="2"
+              placeholder="Contoh: Akses Gerbang Utara, 150m menuju Majelis Utama"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-white focus:outline-none focus:border-emerald-500"
+            ></textarea>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Link Google Maps (Opsional)</label>
+            <input
+              v-model="parkingForm.maps_url"
+              type="url"
+              placeholder="https://maps.google.com/?q=..."
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#071913] border border-[#143d30] text-white focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-[#143d30]">
+          <button
+            type="button"
+            @click="isParkingModalOpen = false"
+            class="px-4 py-2 rounded-xl bg-[#071913] border border-[#143d30] text-xs font-semibold cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            @click="saveParkingZone"
+            class="px-4 py-2 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white text-xs font-bold cursor-pointer"
+          >
+            Simpan Titik
+          </button>
         </div>
       </div>
     </div>

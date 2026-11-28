@@ -217,43 +217,19 @@ function downloadIcs(day: ScheduleDay, item: ScheduleItem) {
                     <span v-if="item.leader">Pimpinan: <strong>{{ item.leader }}</strong></span>
                   </div>
 
-                  <!-- Quick Actions: Share WA & Save to Calendar -->
+                  <!-- Quick Action: Share WhatsApp Only -->
                   <div class="flex flex-wrap items-center gap-2 mt-3" @click.stop>
                     <a
                       :href="getAgendaWhatsAppUrl(d, item)"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 text-[11px] font-semibold transition-colors"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 text-[11px] font-semibold transition-colors"
                     >
                       <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-current" aria-hidden="true">
                         <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.49 0 .15 5.34.15 11.91c0 2.1.55 4.15 1.6 5.96L0 24l6.31-1.65a11.86 11.86 0 0 0 5.75 1.47h.01c6.57 0 11.91-5.34 11.91-11.91 0-3.18-1.24-6.17-3.46-8.43Zm-8.46 18.33h-.01a9.88 9.88 0 0 1-5.04-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.52-5.27c0-5.46 4.44-9.9 9.91-9.9 2.65 0 5.14 1.03 7.01 2.9a9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.45 9.9-9.91 9.9Z"/>
                       </svg>
                       <span>Bagikan ke WhatsApp</span>
                     </a>
-
-                    <a
-                      :href="getGoogleCalendarUrl(d, item)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold transition-colors"
-                    >
-                      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 text-[#008f8a]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                      </svg>
-                      <span>Simpan ke Kalender</span>
-                    </a>
-
-                    <button
-                      type="button"
-                      @click="downloadIcs(d, item)"
-                      class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 text-[11px] font-medium transition-colors cursor-pointer"
-                      title="Unduh file .ics untuk iPhone/Android"
-                    >
-                      <span>.ICS</span>
-                    </button>
                   </div>
                 </div>
               </div>

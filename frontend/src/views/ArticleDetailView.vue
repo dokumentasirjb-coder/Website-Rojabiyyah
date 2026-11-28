@@ -323,13 +323,15 @@ watch(() => route.params.slug, async (newSlug) => {
             <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">
               TAG:
             </span>
-            <span
+            <button
               v-for="t in parsedTags"
               :key="t"
-              class="px-3 py-1 rounded-full bg-[#008f8a]/10 text-[#008f8a] hover:bg-[#008f8a]/15 text-xs font-medium transition-colors"
+              type="button"
+              @click="router.push({ path: '/berita', query: { tag: t } })"
+              class="px-3 py-1 rounded-full bg-[#008f8a]/10 text-[#008f8a] hover:bg-[#008f8a]/20 text-xs font-medium transition-colors cursor-pointer"
             >
               #{{ t }}
-            </span>
+            </button>
           </div>
         </div>
 

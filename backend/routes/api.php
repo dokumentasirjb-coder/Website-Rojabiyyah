@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\AdminArticleController;
+use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -49,6 +50,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Admin CRUD Artikel & Berita
         Route::apiResource('admin/articles', AdminArticleController::class)->names('admin.articles');
+
+        // Admin CRUD Kategori Berita
+        Route::apiResource('admin/categories', AdminCategoryController::class)->only(['index', 'store', 'destroy'])->names('admin.categories');
         Route::post('admin/upload-image', [AdminArticleController::class, 'uploadImage'])->name('admin.upload-image');
 
         // Admin CRUD Pengumuman & Agenda

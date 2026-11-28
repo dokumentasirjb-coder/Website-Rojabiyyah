@@ -27,6 +27,16 @@ const router = useRouter()
 const route = useRoute()
 
 const isMobileSidebarOpen = ref(false)
+const adminTheme = ref<'light' | 'dark'>(
+  (typeof window !== 'undefined' && (localStorage.getItem('roja_admin_theme') as 'light' | 'dark')) || 'light'
+)
+
+function toggleAdminTheme() {
+  adminTheme.value = adminTheme.value === 'light' ? 'dark' : 'light'
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('roja_admin_theme', adminTheme.value)
+  }
+}
 
 onMounted(() => {
   settingsStore.fetchSettings()
@@ -39,7 +49,10 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="admin-shell min-h-screen bg-[#071913] text-slate-100 flex font-sans antialiased selection:bg-[#008f8a] selection:text-white">
+  <div
+    class="admin-shell min-h-screen bg-[#071913] text-slate-100 flex font-sans antialiased selection:bg-[#008f8a] selection:text-white"
+    :class="{ 'admin-light': adminTheme === 'light' }"
+  >
     <!-- Mobile Backdrop -->
     <div
       v-if="isMobileSidebarOpen"
@@ -264,7 +277,7 @@ async function handleLogout() {
     <!-- MAIN WRAPPER (Offset by sidebar width on lg) -->
     <div class="flex-1 flex flex-col min-w-0 lg:pl-64">
       <!-- TOP HEADER BAR (Matching reference) -->
-      <header class="h-16 bg-[#051510]/80 backdrop-blur-md border-b border-[#0e2c22] sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8">
+      <header class="admin-header h-16 bg-[#051510] border-b border-[#0e2c22] sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8">
         <!-- Left Greeting & Mobile Toggle -->
         <div class="flex items-center gap-3">
           <button
@@ -286,7 +299,34 @@ async function handleLogout() {
         </div>
 
         <!-- Right Action Items -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 sm:gap-3">
+          <!-- Mode Terang / Gelap Switch -->
+          <button
+            type="button"
+            @click="toggleAdminTheme"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer"
+            :class="adminTheme === 'light'
+              ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+              : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-200'"
+            :title="adminTheme === 'light' ? 'Beralih ke Mode Gelap' : 'Beralih ke Mode Terang'"
+          >
+            <svg v-if="adminTheme === 'light'" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+            <span class="hidden sm:inline">{{ adminTheme === 'light' ? 'Mode Terang' : 'Mode Gelap' }}</span>
+          </button>
+
           <!-- Notification Icon -->
           <button
             type="button"

@@ -46,3 +46,77 @@
   transform: translate3d(0, 0, 0);
   will-change: auto;
 }
+
+/* ============================================================
+   ADMIN LIGHT MODE (Default High-Contrast Clean UI)
+   ============================================================ */
+.admin-shell.admin-light {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+.admin-shell.admin-light aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.admin-shell.admin-light aside .bg-\[\#04120e\] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+.admin-shell.admin-light .admin-header {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.admin-shell.admin-light .bg-\[\#0b211a\],
+.admin-shell.admin-light .bg-\[\#081b15\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.admin-shell.admin-light .bg-\[\#071913\],
+.admin-shell.admin-light .bg-\[\#04120e\],
+.admin-shell.admin-light .bg-\[\#051510\] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+.admin-shell.admin-light .border-\[\#143d30\],
+.admin-shell.admin-light .border-\[\#0e2c22\],
+.admin-shell.admin-light .border-\[\#1a4d3c\] {
+  border-color: #e2e8f0 !important;
+}
+.admin-shell.admin-light .text-white {
+  color: #0f172a !important;
+}
+.admin-shell.admin-light .bg-\[\#008f8a\] .text-white,
+.admin-shell.admin-light button.bg-\[\#008f8a\],
+.admin-shell.admin-light button.bg-emerald-600,
+.admin-shell.admin-light a.bg-\[\#008f8a\] {
+  color: #ffffff !important;
+}
+.admin-shell.admin-light .text-slate-100,
+.admin-shell.admin-light .text-slate-200 {
+  color: #1e293b !important;
+}
+.admin-shell.admin-light .text-slate-300,
+.admin-shell.admin-light .text-slate-400 {
+  color: #475569 !important;
+}
+.admin-shell.admin-light input,
+.admin-shell.admin-light select,
+.admin-shell.admin-light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+.admin-shell.admin-light input::placeholder,
+.admin-shell.admin-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+.admin-shell.admin-light aside a.bg-white {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+.admin-shell.admin-light aside a.text-slate-200:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}

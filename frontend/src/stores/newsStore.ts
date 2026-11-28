@@ -162,6 +162,31 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
+  async function createCategory(name: string): Promise<{ success: boolean; message?: string }> {
+    const clean = name.trim()
+    if (!clean) return { success: false, message: 'Nama kategori tidak boleh kosong.' }
+    try {
+      const response = await api.post<{ success: boolean; message?: string; data: Category }>('/admin/categories', { name: clean })
+      await fetchCategories()
+      return { success: true, message: response.data?.message || 'Kategori berhasil ditambahkan.' }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Gagal menambahkan kategori.' }
+    }
+  }
+
+  async function deleteCategory(id: number): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await api.delete<{ success: boolean; message?: string }>(`/admin/categories/${id}`)
+      await Promise.all([
+        fetchCategories(),
+        fetchArticles(1, activeCategory.value, searchQuery.value, true),
+      ])
+      return { success: true, message: response.data?.message || 'Kategori berhasil dihapus.' }
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || 'Gagal menghapus kategori.' }
+    }
+  }
+
   async function saveArticle(
     articleData: Partial<Article> & { title: string; id?: number; category_id?: number; category_name?: string }
   ): Promise<{ success: boolean; message?: string }> {
@@ -179,6 +204,7 @@ export const useNewsStore = defineStore('news', () => {
         category_name: categoryName || undefined,
         content: resolvedContent,
         excerpt: articleData.excerpt || '',
+        tags: typeof articleData.tags === 'string' ? articleData.tags : (Array.isArray(articleData.tags) ? articleData.tags.join(', ') : ''),
         status: articleData.status || 'published',
         is_featured: Boolean(articleData.is_featured),
         cover_image: articleData.cover_image || articleData.cover_image_url || '',
@@ -303,6 +329,8 @@ export const useNewsStore = defineStore('news', () => {
     fetchHome,
     fetchArticles,
     fetchCategories,
+    createCategory,
+    deleteCategory,
     fetchArticleBySlug,
     saveArticle,
     deleteArticle,

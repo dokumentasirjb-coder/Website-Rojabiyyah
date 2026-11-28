@@ -200,23 +200,34 @@ async function handleReset() {
         </div>
       </div>
 
-      <!-- Success Toast Alert -->
-      <div
-        v-if="showToast"
-        class="p-4 rounded-2xl bg-[#0d3326] border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between gap-3 shadow-lg animate-in fade-in"
-      >
-        <div class="flex items-center gap-2">
-          <CheckCircle2 class="w-4 h-4 text-emerald-400 shrink-0" />
-          <span class="font-medium">{{ settingsStore.successMessage || 'Pengaturan berhasil disimpan dan langsung aktif di seluruh website!' }}</span>
-        </div>
-        <a
-          href="/"
-          target="_blank"
-          class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:underline"
+      <!-- Floating Success Toast Notification (Always visible without scrolling) -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-2"
         >
-          Lihat Website <ExternalLink class="w-3 h-3" />
-        </a>
-      </div>
+          <div
+            v-if="showToast"
+            class="fixed bottom-5 right-5 z-[99999] max-w-sm w-[calc(100%-2.5rem)] p-4 rounded-2xl bg-emerald-600 border border-emerald-500 text-white text-xs flex items-center justify-between gap-3 shadow-xl"
+          >
+            <div class="flex items-center gap-2.5">
+              <CheckCircle2 class="w-5 h-5 text-white shrink-0" />
+              <span class="font-semibold leading-snug">{{ settingsStore.successMessage || 'Pengaturan berhasil disimpan dan langsung aktif di seluruh website!' }}</span>
+            </div>
+            <a
+              href="/"
+              target="_blank"
+              class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-100 hover:text-white underline shrink-0"
+            >
+              Lihat <ExternalLink class="w-3 h-3" />
+            </a>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Settings Layout (Tabs + Form) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -911,6 +922,65 @@ async function handleReset() {
                   placeholder="Contoh: Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa"
                   class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
                 ></textarea>
+              </div>
+
+              <!-- Live Countdown Puncak Acara -->
+              <div class="mt-6 pt-6 border-t border-[#143d30] space-y-4">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 class="text-sm font-bold text-white">Live Countdown Puncak Acara</h4>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                      Hitung mundur transparan di Hero Beranda. Jika tanggal dikosongkan, otomatis mengikuti jadwal agenda terdekat.
+                    </p>
+                  </div>
+                  <label class="inline-flex items-center gap-2 cursor-pointer shrink-0">
+                    <input
+                      v-model="form.countdown_enabled"
+                      type="checkbox"
+                      class="w-4 h-4 rounded accent-emerald-500 cursor-pointer"
+                    />
+                    <span class="text-xs font-bold text-emerald-400">
+                      {{ form.countdown_enabled !== false ? 'Aktif' : 'Nonaktif' }}
+                    </span>
+                  </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-white mb-1.5">
+                      Judul / Label Countdown
+                    </label>
+                    <input
+                      v-model="form.countdown_label"
+                      type="text"
+                      placeholder="Contoh: Menuju Puncak Haul Abah Ke-5"
+                      class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-white mb-1.5">
+                      Tanggal &amp; Waktu Target
+                    </label>
+                    <input
+                      v-model="form.countdown_target"
+                      type="datetime-local"
+                      class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-white mb-1.5">
+                    Teks Status Saat Waktu Tiba
+                  </label>
+                  <input
+                    v-model="form.countdown_live_text"
+                    type="text"
+                    placeholder="Contoh: ACARA SEDANG BERLANGSUNG"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#04120e] border border-[#143d30] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
               </div>
             </div>
           </div>

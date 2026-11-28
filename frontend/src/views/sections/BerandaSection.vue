@@ -43,7 +43,24 @@ function parseIndoDateTime(dateStr?: string, timeStr?: string): number | null {
 const nowMs = ref(Date.now())
 let timer: ReturnType<typeof setInterval> | null = null
 
+const isCountdownEnabled = computed(() => {
+  return settingsStore.settings.countdown_enabled !== false
+})
+
 const nextAgendaTarget = computed(() => {
+  const customTarget = (settingsStore.settings.countdown_target || '').trim()
+  const customLabel = (settingsStore.settings.countdown_label || '').trim()
+
+  if (customTarget) {
+    const parsedCustom = new Date(customTarget).getTime()
+    if (!Number.isNaN(parsedCustom)) {
+      return {
+        ts: parsedCustom,
+        label: customLabel || 'Puncak Haul Abah Ke-5',
+      }
+    }
+  }
+
   const days = settingsStore.settings.agenda_schedules_json || []
   const candidates: { ts: number; label: string }[] = []
 
@@ -65,15 +82,23 @@ const nextAgendaTarget = computed(() => {
 
   candidates.sort((a, b) => a.ts - b.ts)
   const upcoming = candidates.find((c) => c.ts > nowMs.value)
-  if (upcoming) return upcoming
-
-  if (candidates.length > 0) {
-    return candidates[candidates.length - 1]
+  if (upcoming) {
+    return {
+      ts: upcoming.ts,
+      label: customLabel || upcoming.label,
+    }
   }
 
-  // Fallback puncak acara dari pengaturan / default
+  if (candidates.length > 0) {
+    const last = candidates[candidates.length - 1]
+    return {
+      ts: last.ts,
+      label: customLabel || last.label,
+    }
+  }
+
   const fallbackTs = new Date(2026, 11, 16, 8, 0, 0).getTime()
-  return { ts: fallbackTs, label: 'Puncak Haul Abah Ke-5' }
+  return { ts: fallbackTs, label: customLabel || 'Puncak Haul Abah Ke-5' }
 })
 
 const countdown = computed(() => {
@@ -150,42 +175,39 @@ onUnmounted(() => {
           {{ settingsStore.settings?.hero_tagline || 'Menjaga Marwah, Memperkaya Khidmah untuk Kemaslahatan Bangsa' }}
         </p>
 
-        <!-- Live Countdown Widget -->
-        <div class="pt-3 sm:pt-4">
+        <!-- 100% Transparent Minimalist Live Countdown -->
+        <div v-if="isCountdownEnabled" class="pt-3 sm:pt-4">
           <div
             v-if="countdown.isLive"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-xs font-bold tracking-wider uppercase"
+            class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] uppercase text-emerald-300"
           >
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>ACARA SEDANG BERLANGSUNG</span>
+            <span>{{ settingsStore.settings.countdown_live_text || 'ACARA SEDANG BERLANGSUNG' }}</span>
           </div>
 
-          <div
-            v-else
-            class="inline-flex flex-col gap-2 bg-white/10 border border-white/15 rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5"
-          >
-            <div class="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d4af37] truncate max-w-[280px] sm:max-w-md">
-              Menuju {{ nextAgendaTarget.label }}
+          <div v-else class="space-y-2">
+            <div class="text-[11px] sm:text-xs tracking-[0.2em] uppercase font-medium text-amber-400/90">
+              {{ nextAgendaTarget.label }}
             </div>
-            <div class="flex items-center gap-2 sm:gap-3 text-white tabular-nums">
-              <div class="text-center min-w-[44px]">
-                <span class="block text-xl sm:text-2xl font-extrabold leading-none">{{ countdown.days }}</span>
-                <span class="block text-[9px] uppercase tracking-wider text-slate-300 mt-1">Hari</span>
+            <div class="flex items-start gap-3 sm:gap-4 tabular-nums">
+              <div class="text-center">
+                <span class="block text-2xl sm:text-3xl font-bold leading-none text-white">{{ countdown.days }}</span>
+                <span class="block text-[9px] sm:text-[10px] tracking-[0.15em] uppercase text-white/60 mt-1.5">HARI</span>
               </div>
-              <span class="text-lg font-bold text-white/40 -mt-3">:</span>
-              <div class="text-center min-w-[40px]">
-                <span class="block text-xl sm:text-2xl font-extrabold leading-none">{{ countdown.hours }}</span>
-                <span class="block text-[9px] uppercase tracking-wider text-slate-300 mt-1">Jam</span>
+              <span class="text-xl sm:text-2xl font-bold text-white/30 leading-none">:</span>
+              <div class="text-center">
+                <span class="block text-2xl sm:text-3xl font-bold leading-none text-white">{{ countdown.hours }}</span>
+                <span class="block text-[9px] sm:text-[10px] tracking-[0.15em] uppercase text-white/60 mt-1.5">JAM</span>
               </div>
-              <span class="text-lg font-bold text-white/40 -mt-3">:</span>
-              <div class="text-center min-w-[40px]">
-                <span class="block text-xl sm:text-2xl font-extrabold leading-none">{{ countdown.minutes }}</span>
-                <span class="block text-[9px] uppercase tracking-wider text-slate-300 mt-1">Menit</span>
+              <span class="text-xl sm:text-2xl font-bold text-white/30 leading-none">:</span>
+              <div class="text-center">
+                <span class="block text-2xl sm:text-3xl font-bold leading-none text-white">{{ countdown.minutes }}</span>
+                <span class="block text-[9px] sm:text-[10px] tracking-[0.15em] uppercase text-white/60 mt-1.5">MENIT</span>
               </div>
-              <span class="text-lg font-bold text-white/40 -mt-3">:</span>
-              <div class="text-center min-w-[40px]">
-                <span class="block text-xl sm:text-2xl font-extrabold leading-none text-[#d4af37]">{{ countdown.seconds }}</span>
-                <span class="block text-[9px] uppercase tracking-wider text-slate-300 mt-1">Detik</span>
+              <span class="text-xl sm:text-2xl font-bold text-white/30 leading-none">:</span>
+              <div class="text-center">
+                <span class="block text-2xl sm:text-3xl font-bold leading-none text-amber-400">{{ countdown.seconds }}</span>
+                <span class="block text-[9px] sm:text-[10px] tracking-[0.15em] uppercase text-amber-400/75 mt-1.5">DETIK</span>
               </div>
             </div>
           </div>

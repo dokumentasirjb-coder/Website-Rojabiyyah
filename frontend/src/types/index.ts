@@ -230,4 +230,9 @@ export interface SiteSettings {
   gallery_items_json?: GalleryPhoto[]
   gallery_albums_json?: GalleryAlbum[]
   informasi_data_json?: any
+  countdown_enabled?: boolean
+  countdown_label?: string
+  countdown_target?: string
+  countdown_live_text?: string
+  parking_zones_json?: any[]
 }

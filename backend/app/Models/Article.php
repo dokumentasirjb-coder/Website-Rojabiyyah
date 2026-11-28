@@ -21,6 +21,7 @@ class Article extends Model
         'title',
         'slug',
         'excerpt',
+        'tags',
         'content',
         'cover_image',
         'category_id',

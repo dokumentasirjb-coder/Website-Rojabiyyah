@@ -54,6 +54,7 @@ class ArticleResource extends JsonResource
             'title'                => $this->title,
             'slug'                 => $this->slug,
             'excerpt'              => $this->excerpt,
+            'tags'                 => $attributes['tags'] ?? null,
             'content'              => $this->content,
 
             // URL Gambar Lengkap untuk kebutuhan Frontend domain terpisah

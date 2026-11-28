@@ -56,6 +56,7 @@ class AdminArticleController extends Controller
             'category_name' => ['nullable', 'string', 'max:100'],
             'content'       => ['required', 'string'],
             'excerpt'       => ['nullable', 'string', 'max:500'],
+            'tags'          => ['nullable', 'string', 'max:500'],
             'status'        => ['required', 'in:draft,published,archived'],
             'is_featured'   => ['nullable', 'boolean'],
             'cover_image'   => ['nullable'],
@@ -70,6 +71,16 @@ class AdminArticleController extends Controller
         }
         if (! Schema::hasColumn('articles', 'author_role')) {
             unset($validated['author_role']);
+        }
+        if (! Schema::hasColumn('articles', 'tags')) {
+            unset($validated['tags']);
+        } elseif (array_key_exists('tags', $validated)) {
+            $validated['tags'] = $this->normalizeTags($validated['tags']);
+        }
+        if (! Schema::hasColumn('articles', 'tags')) {
+            unset($validated['tags']);
+        } elseif (isset($validated['tags'])) {
+            $validated['tags'] = $this->normalizeTags($validated['tags']);
         }
 
         // Handle upload cover image
@@ -143,6 +154,7 @@ class AdminArticleController extends Controller
             'category_name' => ['nullable', 'string', 'max:100'],
             'content'       => ['sometimes', 'required', 'string'],
             'excerpt'       => ['nullable', 'string', 'max:500'],
+            'tags'          => ['nullable', 'string', 'max:500'],
             'status'        => ['sometimes', 'required', 'in:draft,published,archived'],
             'is_featured'   => ['nullable', 'boolean'],
             'cover_image'   => ['nullable'],
@@ -157,6 +169,16 @@ class AdminArticleController extends Controller
         }
         if (! Schema::hasColumn('articles', 'author_role')) {
             unset($validated['author_role']);
+        }
+        if (! Schema::hasColumn('articles', 'tags')) {
+            unset($validated['tags']);
+        } elseif (array_key_exists('tags', $validated)) {
+            $validated['tags'] = $this->normalizeTags($validated['tags']);
+        }
+        if (! Schema::hasColumn('articles', 'tags')) {
+            unset($validated['tags']);
+        } elseif (isset($validated['tags'])) {
+            $validated['tags'] = $this->normalizeTags($validated['tags']);
         }
 
         // Update cover image jika berkas baru dikirim
@@ -286,5 +308,22 @@ class AdminArticleController extends Controller
             );
             $request->merge(['category_id' => $category->id]);
         }
+    }
+
+    /**
+     * Rapikan daftar tag dipisah koma agar konsisten.
+     */
+    private function normalizeTags(?string $rawTags): string
+    {
+        if ($rawTags === null || trim($rawTags) === '') {
+            return '';
+        }
+
+        $items = array_filter(array_map(
+            fn ($t) => trim(ltrim(trim($t), '#')),
+            explode(',', $rawTags)
+        ));
+
+        return implode(', ', array_unique($items));
     }
 }

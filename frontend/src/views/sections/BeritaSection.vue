@@ -1,20 +1,44 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Newspaper, Eye, TrendingUp, User } from 'lucide-vue-next'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { Newspaper, Eye, TrendingUp, User, X } from 'lucide-vue-next'
 import { useNewsStore } from '@/stores/newsStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import type { Article } from '@/types'
 
 const router = useRouter()
+const route = useRoute()
 const newsStore = useNewsStore()
 const settingsStore = useSettingsStore()
 
 const activeCategory = ref<string>('semua')
+const activeTag = ref<string>((route.query.tag as string) || '')
+
+watch(
+  () => route.query.tag,
+  (newTag) => {
+    activeTag.value = typeof newTag === 'string' ? newTag : ''
+  }
+)
 
 onMounted(() => {
   newsStore.fetchCategories()
 })
+
+function parseArticleTags(article: Article): string[] {
+  if (!article.tags) return []
+  if (Array.isArray(article.tags)) {
+    return article.tags.map((t) => String(t).trim().replace(/^#/, '')).filter(Boolean)
+  }
+  return String(article.tags)
+    .split(',')
+    .map((t) => t.trim().replace(/^#/, ''))
+    .filter(Boolean)
+}
+
+function selectTag(tag: string) {
+  activeTag.value = activeTag.value.toLowerCase() === tag.toLowerCase() ? '' : tag
+}
 
 // Hanya tampilkan berita yang berstatus Terbit (published) di halaman publik
 const publishedArticles = computed(() => {
@@ -40,13 +64,20 @@ const categoryOptions = computed(() => {
 })
 
 const filteredArticles = computed(() => {
-  if (activeCategory.value === 'semua') {
-    return publishedArticles.value
+  let list = publishedArticles.value
+  if (activeCategory.value !== 'semua') {
+    const target = activeCategory.value.toLowerCase()
+    list = list.filter(
+      (a) => (a.category?.name || '').trim().toLowerCase() === target
+    )
   }
-  const target = activeCategory.value.toLowerCase()
-  return publishedArticles.value.filter(
-    (a) => (a.category?.name || '').trim().toLowerCase() === target
-  )
+  if (activeTag.value) {
+    const targetTag = activeTag.value.toLowerCase()
+    list = list.filter((a) =>
+      parseArticleTags(a).some((t) => t.toLowerCase() === targetTag)
+    )
+  }
+  return list
 })
 
 const popularArticles = computed(() => {
@@ -111,7 +142,7 @@ function handleArticleClick(article: Article) {
             class="px-4 py-2 rounded-full font-semibold transition-colors shrink-0 cursor-pointer border"
             :class="[activeCategory === 'semua' ? 'bg-[#08253C] text-white border-[#08253C]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300']"
           >
-            Semua ({{ publishedArticles.length }})
+            Semua
           </button>
 
           <button
@@ -143,11 +174,28 @@ function handleArticleClick(article: Article) {
       <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
         <!-- Main Column: Latest Filtered Articles (8 cols) -->
         <div class="lg:col-span-8">
-          <div v-if="filteredArticles.length === 0" class="py-14 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4">
-            <p class="text-sm font-semibold text-slate-700">Belum ada berita pada kategori "{{ activeCategory }}".</p>
+          <div v-if="activeTag" class="mb-5 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#008f8a]/10 border border-[#008f8a]/25 text-xs">
+            <div class="flex items-center gap-2 text-slate-700">
+              <span class="font-bold uppercase tracking-wider text-[#008f8a]">Filter Tag:</span>
+              <span class="px-2.5 py-0.5 rounded-full bg-white text-[#008f8a] font-semibold">#{{ activeTag }}</span>
+            </div>
             <button
               type="button"
-              @click="activeCategory = 'semua'"
+              @click="activeTag = ''"
+              class="inline-flex items-center gap-1 text-slate-500 hover:text-slate-900 font-semibold cursor-pointer"
+            >
+              <X class="w-3.5 h-3.5" />
+              <span>Hapus Filter</span>
+            </button>
+          </div>
+
+          <div v-if="filteredArticles.length === 0" class="py-14 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4">
+            <p class="text-sm font-semibold text-slate-700">
+              Belum ada berita yang sesuai dengan filter yang dipilih.
+            </p>
+            <button
+              type="button"
+              @click="activeCategory = 'semua'; activeTag = ''"
               class="mt-3 px-4 py-2 rounded-xl bg-[#08253C] text-white text-xs font-semibold cursor-pointer hover:opacity-90"
             >
               Tampilkan Semua Berita
@@ -199,6 +247,25 @@ function handleArticleClick(article: Article) {
                 <p class="text-xs sm:text-[13px] text-slate-500 line-clamp-3 font-normal leading-relaxed">
                   {{ article.excerpt }}
                 </p>
+
+                <!-- Clickable Tag Pills -->
+                <div v-if="parseArticleTags(article).length > 0" class="mt-3 flex flex-wrap items-center gap-1.5" @click.stop>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-0.5">TAG:</span>
+                  <button
+                    v-for="tag in parseArticleTags(article)"
+                    :key="tag"
+                    type="button"
+                    @click="selectTag(tag)"
+                    class="px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer"
+                    :class="[
+                      activeTag.toLowerCase() === tag.toLowerCase()
+                        ? 'bg-[#008f8a] text-white'
+                        : 'bg-[#008f8a]/10 text-[#008f8a] hover:bg-[#008f8a]/20'
+                    ]"
+                  >
+                    #{{ tag }}
+                  </button>
+                </div>
 
                 <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500">
                   <User class="w-3.5 h-3.5 text-[#008f8a] shrink-0" />

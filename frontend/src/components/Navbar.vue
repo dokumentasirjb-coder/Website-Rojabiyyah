@@ -63,7 +63,7 @@ function navigateTo(targetPath: string) {
 
 <template>
   <header 
-    class="w-full backdrop-blur-md border-b sticky top-0 z-50 transition-colors duration-300 border-t-3 sm:border-t-4"
+    class="w-full border-b sticky top-0 z-50 transition-colors duration-300 border-t-3 sm:border-t-4"
     :style="{
       backgroundColor: navbarBackground,
       borderTopColor: 'var(--site-primary, #008f8a)',
