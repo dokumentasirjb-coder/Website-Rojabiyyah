@@ -50,7 +50,7 @@ async function handleSubmit() {
           />
         </div>
         <div v-else class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center p-1.5 border border-[#c59b27]/50 shadow-lg group-hover:border-[#f3e5ab] transition-colors shrink-0 overflow-hidden">
-          <img src="/favicon.svg" alt="Logo Panitia Rojabiyyah" class="w-full h-full object-contain" />
+          <img src="/favicon-96x96.png" alt="Logo Panitia Rojabiyyah" class="w-full h-full object-contain" />
         </div>
         <div class="min-w-0">
           <p class="text-[11px] uppercase tracking-[0.18em] text-emerald-300 font-semibold group-hover:text-[#f3e5ab] transition-colors truncate">
@@ -117,7 +117,7 @@ async function handleSubmit() {
             />
           </div>
           <div v-else class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#006432] to-[#022314] flex items-center justify-center p-1.5 mx-auto shadow-md border border-[#c59b27] overflow-hidden">
-            <img src="/favicon.svg" alt="Logo Panitia Rojabiyyah" class="w-full h-full object-contain" />
+            <img src="/favicon-96x96.png" alt="Logo Panitia Rojabiyyah" class="w-full h-full object-contain" />
           </div>
           <h1 class="mt-3 font-serif text-2xl font-bold text-[#006432]">
             PANEL PANITIA ROJABIYYAH

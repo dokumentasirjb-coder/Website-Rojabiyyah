@@ -98,7 +98,7 @@ function navigateTo(targetPath: string) {
             :class="[isDarkNavbar ? 'border-white/20 bg-white/10' : 'border-slate-200 bg-white']"
           >
             <img
-              src="/favicon.svg"
+              src="/favicon-96x96.png"
               :alt="settingsStore.settings?.site_title || 'Panitia Rojabiyyah & Haul Abah Ke-5'"
               class="w-full h-full object-contain rounded-full"
             />

@@ -13,6 +13,7 @@ export const EMPTY_SETTINGS: SiteSettings = {
   site_subtitle: '',
   navbar_badge: '',
   favicon_url: '',
+  site_favicon_url: '',
   logo_image_url: '',
   topbar_date: '',
   topbar_location: '',
@@ -310,17 +311,26 @@ export const useSettingsStore = defineStore('settings', () => {
 
   applyTheme(settings.value)
 
-  function applyFavicon(url: string) {
-    if (!url || typeof document === 'undefined') return
-    // Pertahankan tag statis PNG 96x96 & apple-touch-icon untuk Google Favicon Crawler
-    let link: HTMLLinkElement | null = document.querySelector("link[rel='shortcut icon']")
-    if (!link) {
-      link = document.createElement('link')
-      link.type = 'image/svg+xml'
-      link.rel = 'shortcut icon'
-      document.getElementsByTagName('head')[0].appendChild(link)
+  function applyFavicon(url?: string) {
+    if (typeof document === 'undefined') return
+    const raw = (url || settings.value.site_favicon_url || settings.value.favicon_url || settings.value.logo_image_url || '').trim()
+    if (!raw || raw === '/favicon.svg') return
+
+    const sep = raw.includes('?') ? '&' : '?'
+    const versioned = raw.startsWith('data:') ? raw : `${raw}${sep}v=${Date.now()}`
+
+    const links = document.querySelectorAll("link[rel*='icon']")
+    if (links.length > 0) {
+      links.forEach((el) => {
+        const link = el as HTMLLinkElement
+        link.href = versioned
+      })
+    } else {
+      const link = document.createElement('link')
+      link.rel = 'icon'
+      link.href = versioned
+      document.head.appendChild(link)
     }
-    link.href = url
   }
 
   let inFlightFetch: Promise<void> | null = null
@@ -338,9 +348,7 @@ export const useSettingsStore = defineStore('settings', () => {
           saveCachedSettings(settings.value)
           isLoaded.value = true
           applyTheme(settings.value)
-          if (settings.value.favicon_url) {
-            applyFavicon(settings.value.favicon_url)
-          }
+          applyFavicon(settings.value.site_favicon_url || settings.value.favicon_url || settings.value.logo_image_url)
           if (response.data.data.informasi_data_json && typeof window !== 'undefined') {
             window.dispatchEvent(
               new CustomEvent('informasi-server-synced', {
@@ -371,9 +379,7 @@ export const useSettingsStore = defineStore('settings', () => {
         settings.value = mergeSettings(response.data.data)
         saveCachedSettings(settings.value)
         applyTheme(settings.value)
-        if (settings.value.favicon_url) {
-          applyFavicon(settings.value.favicon_url)
-        }
+        applyFavicon(settings.value.site_favicon_url || settings.value.favicon_url || settings.value.logo_image_url)
       }
       await fetchSettings(true)
       successMessage.value = response.data?.message || 'Pengaturan situs berhasil disimpan ke database!'
@@ -402,5 +408,6 @@ export const useSettingsStore = defineStore('settings', () => {
     updateSettings,
     resetToDefault,
     applyTheme,
+    applyFavicon,
   }
 })

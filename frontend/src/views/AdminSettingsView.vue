@@ -124,8 +124,11 @@ function onCustomColorChange() {
 
 async function handleSave() {
   // Jaga agar galeri & agenda terbaru tidak tertimpa saat menyimpan pengaturan tampilan/banner
+  const faviconVal = form.site_favicon_url || form.favicon_url || ''
   const payload = {
     ...form,
+    site_favicon_url: faviconVal,
+    favicon_url: faviconVal,
     gallery_albums_json: settingsStore.settings.gallery_albums_json,
     agenda_schedules_json: settingsStore.settings.agenda_schedules_json,
   }
@@ -758,11 +761,28 @@ async function handleReset() {
                 />
               </div>
 
-              <div class="sm:col-span-2">
+              <div class="sm:col-span-2 p-4 rounded-2xl bg-[#04120e] border border-[#143d30] space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div class="w-20 h-20 rounded-xl border border-[#143d30] bg-white flex items-center justify-center overflow-hidden shrink-0 p-1.5">
+                    <img
+                      :src="form.site_favicon_url || form.favicon_url || '/favicon-96x96.png'"
+                      alt="Pratinjau Favicon 1:1"
+                      class="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-xs font-bold text-white">
+                      Logo Favicon Website (Ikon Tab Browser &amp; Google Search)
+                    </h4>
+                    <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                      Terpisah dari Logo Utama Header. Gunakan gambar persegi rasio 1:1 (PNG, JPG, WebP, atau SVG). Otomatis menghasilkan versi 96x96 px &amp; 180x180 px untuk Google Search.
+                    </p>
+                  </div>
+                </div>
                 <ImageUploadInput
-                  v-model="form.favicon_url"
-                  label="Icon Favicon Website (Unggah dari Komputer)"
-                  description="Icon tab browser yang muncul di samping judul tab."
+                  v-model="form.site_favicon_url"
+                  label="Unggah / Ganti Favicon"
+                  description="Format didukung: PNG, JPG, WebP, SVG (disarankan persegi 1:1)."
                   aspect="square"
                   :maxDimension="256"
                 />

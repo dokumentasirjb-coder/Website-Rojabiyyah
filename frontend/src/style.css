@@ -48,43 +48,43 @@
 }
 
 /* ============================================================
-   ADMIN LIGHT MODE (Default High-Contrast Clean UI)
+   ADMIN MODE SIANG TEDUH (#EEF2F6 / #F8FAFC / #CBD5E1 / #1E293B)
    ============================================================ */
 .admin-shell.admin-light {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background-color: #eef2f6 !important;
+  color: #1e293b !important;
 }
 .admin-shell.admin-light aside {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
 }
 .admin-shell.admin-light aside .bg-\[\#04120e\] {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+  background-color: #eef2f6 !important;
+  border-color: #cbd5e1 !important;
 }
 .admin-shell.admin-light .admin-header {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
 }
 .admin-shell.admin-light .bg-\[\#0b211a\],
 .admin-shell.admin-light .bg-\[\#081b15\] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .admin-shell.admin-light .bg-\[\#071913\],
 .admin-shell.admin-light .bg-\[\#04120e\],
 .admin-shell.admin-light .bg-\[\#051510\] {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+  background-color: #eef2f6 !important;
+  border-color: #cbd5e1 !important;
 }
 .admin-shell.admin-light .border-\[\#143d30\],
 .admin-shell.admin-light .border-\[\#0e2c22\],
 .admin-shell.admin-light .border-\[\#1a4d3c\] {
-  border-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
 }
 .admin-shell.admin-light .text-white {
-  color: #0f172a !important;
+  color: #1e293b !important;
 }
 .admin-shell.admin-light .bg-\[\#008f8a\] .text-white,
 .admin-shell.admin-light button.bg-\[\#008f8a\],
@@ -105,7 +105,7 @@
 .admin-shell.admin-light textarea {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+  color: #1e293b !important;
 }
 .admin-shell.admin-light input::placeholder,
 .admin-shell.admin-light textarea::placeholder {
@@ -117,6 +117,44 @@
   border: 1px solid #a7f3d0 !important;
 }
 .admin-shell.admin-light aside a.text-slate-200:hover {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+/* ============================================================
+   ADMIN MODE MALAM (#0B1120 / #111827 / #1F2937 / #F1F5F9)
+   ============================================================ */
+.admin-shell.admin-dark {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+.admin-shell.admin-dark aside,
+.admin-shell.admin-dark .admin-header,
+.admin-shell.admin-dark .bg-\[\#0b211a\],
+.admin-shell.admin-dark .bg-\[\#081b15\] {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+}
+.admin-shell.admin-dark .bg-\[\#071913\],
+.admin-shell.admin-dark .bg-\[\#04120e\],
+.admin-shell.admin-dark .bg-\[\#051510\] {
+  background-color: #0b1120 !important;
+  border-color: #1f2937 !important;
+}
+.admin-shell.admin-dark .border-\[\#143d30\],
+.admin-shell.admin-dark .border-\[\#0e2c22\],
+.admin-shell.admin-dark .border-\[\#1a4d3c\] {
+  border-color: #1f2937 !important;
+}
+.admin-shell.admin-dark .text-white,
+.admin-shell.admin-dark .text-slate-100,
+.admin-shell.admin-dark .text-slate-200 {
+  color: #f1f5f9 !important;
+}
+.admin-shell.admin-dark input,
+.admin-shell.admin-dark select,
+.admin-shell.admin-dark textarea {
+  background-color: #0b1120 !important;
+  border-color: #1f2937 !important;
+  color: #f1f5f9 !important;
 }

@@ -111,16 +111,25 @@ class SiteSettingController extends Controller
             'countdown_target' => 'nullable|string|max:100',
             'countdown_live_text' => 'nullable|string|max:255',
             'parking_zones_json' => 'nullable|array',
+            'site_favicon_url' => 'nullable|string',
         ]);
 
         $validated = $this->mediaService->convertBase64Fields($validated);
 
         $settings = SiteSetting::getSettings();
 
-        // Simpan pengaturan countdown & parking_zones ke informasi_data_json agar tidak butuh migrasi baru
+        // Simpan pengaturan countdown, parking_zones, & site_favicon_url ke informasi_data_json
         $infoData = is_array($validated['informasi_data_json'] ?? null)
             ? $validated['informasi_data_json']
             : (is_array($settings->informasi_data_json) ? $settings->informasi_data_json : []);
+
+        if (array_key_exists('site_favicon_url', $validated)) {
+            $favVal = (string) ($validated['site_favicon_url'] ?? '');
+            $infoData['_site_favicon_url'] = $favVal;
+            $validated['informasi_data_json'] = $infoData;
+            $validated['favicon_url'] = $favVal;
+            unset($validated['site_favicon_url']);
+        }
 
         $countdownKeys = ['countdown_enabled', 'countdown_label', 'countdown_target', 'countdown_live_text'];
         $existingCountdown = is_array($infoData['_countdown'] ?? null) ? $infoData['_countdown'] : [];
@@ -144,9 +153,10 @@ class SiteSettingController extends Controller
         $settings->update($validated);
         $settings = $this->mediaService->normalizeStoredBase64Images($settings->fresh() ?? $settings);
 
-        // Sinkronkan favicon statis jika logo baru diunggah ke /storage/
-        if (! empty($validated['logo_image_url']) && is_string($validated['logo_image_url'])) {
-            $this->syncStaticFaviconFromLogo($validated['logo_image_url']);
+        // Prioritaskan site_favicon_url / favicon_url untuk sinkronisasi PNG 96x96 & 180x180 ke root publik
+        $faviconSource = $infoData['_site_favicon_url'] ?? $settings->favicon_url ?? $settings->logo_image_url ?? '';
+        if (is_string($faviconSource) && $faviconSource !== '') {
+            $this->syncStaticFaviconFromLogo($faviconSource);
         }
 
         return response()->json([
@@ -157,7 +167,7 @@ class SiteSettingController extends Controller
     }
 
     /**
-     * Sisipkan field countdown_* & parking_zones_json dari informasi_data_json ke top-level JSON.
+     * Sisipkan field countdown_*, parking_zones_json, & site_favicon_url dari informasi_data_json ke top-level JSON.
      */
     protected function appendVirtualSettings(SiteSetting $settings): array
     {
@@ -170,16 +180,32 @@ class SiteSettingController extends Controller
         $arr['countdown_target'] = $cd['countdown_target'] ?? '';
         $arr['countdown_live_text'] = $cd['countdown_live_text'] ?? 'ACARA SEDANG BERLANGSUNG';
         $arr['parking_zones_json'] = is_array($info['_parking_zones'] ?? null) ? $info['_parking_zones'] : null;
+        $arr['site_favicon_url'] = $info['_site_favicon_url'] ?? ($settings->favicon_url ?: '/favicon-96x96.png');
 
         return $arr;
     }
 
     /**
-     * Salin / resize logo PNG ke public/favicon-96x96.png & apple-touch-icon.png jika tersedia.
+     * Salin / resize favicon ke public_html & public_path (favicon-96x96.png & apple-touch-icon.png)
+     * serta hapus favicon.svg lama agar tidak menimpa favicon baru.
      */
     protected function syncStaticFaviconFromLogo(string $logoUrl): void
     {
         try {
+            $targetDirs = [public_path()];
+            $cpanelPublicHtml = base_path('../public_html');
+            if (is_dir($cpanelPublicHtml)) {
+                $targetDirs[] = $cpanelPublicHtml;
+            }
+
+            // Hapus favicon.svg lama agar tidak menimpa ikon baru
+            foreach ($targetDirs as $dir) {
+                $oldSvg = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'favicon.svg';
+                if (is_file($oldSvg) && is_writable($oldSvg)) {
+                    @unlink($oldSvg);
+                }
+            }
+
             if (! str_starts_with($logoUrl, '/storage/')) {
                 return;
             }
@@ -208,9 +234,11 @@ class SiteSettingController extends Controller
                 $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
                 imagefill($dst, 0, 0, $transparent);
                 imagecopyresampled($dst, $src, 0, 0, 0, 0, $size, $size, $w, $h);
-                $targetPath = public_path($filename);
-                if (is_writable(dirname($targetPath))) {
-                    @imagepng($dst, $targetPath);
+                foreach ($targetDirs as $dir) {
+                    $targetPath = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
+                    if (is_writable(dirname($targetPath))) {
+                        @imagepng($dst, $targetPath);
+                    }
                 }
                 imagedestroy($dst);
             }

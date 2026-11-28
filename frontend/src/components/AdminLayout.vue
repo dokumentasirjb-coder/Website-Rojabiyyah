@@ -50,8 +50,8 @@ async function handleLogout() {
 
 <template>
   <div
-    class="admin-shell min-h-screen bg-[#071913] text-slate-100 flex font-sans antialiased selection:bg-[#008f8a] selection:text-white"
-    :class="{ 'admin-light': adminTheme === 'light' }"
+    class="admin-shell min-h-screen flex font-sans antialiased selection:bg-[#008f8a] selection:text-white"
+    :class="adminTheme === 'light' ? 'admin-light bg-[#EEF2F6] text-[#1E293B]' : 'admin-dark bg-[#0B1120] text-[#F1F5F9]'"
   >
     <!-- Mobile Backdrop -->
     <div
@@ -308,7 +308,7 @@ async function handleLogout() {
             :class="adminTheme === 'light'
               ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
               : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-200'"
-            :title="adminTheme === 'light' ? 'Beralih ke Mode Gelap' : 'Beralih ke Mode Terang'"
+            :title="adminTheme === 'light' ? 'Beralih ke Mode Malam' : 'Beralih ke Mode Siang'"
           >
             <svg v-if="adminTheme === 'light'" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="5" />
@@ -324,7 +324,7 @@ async function handleLogout() {
             <svg v-else viewBox="0 0 24 24" class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
-            <span class="hidden sm:inline">{{ adminTheme === 'light' ? 'Mode Terang' : 'Mode Gelap' }}</span>
+            <span class="hidden sm:inline">{{ adminTheme === 'light' ? 'Mode Siang' : 'Mode Malam' }}</span>
           </button>
 
           <!-- Notification Icon -->

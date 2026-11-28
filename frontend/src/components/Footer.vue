@@ -57,7 +57,7 @@ function handleNav(targetPath: string) {
               class="w-11 h-11 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center p-0.5 shrink-0 shadow-sm overflow-hidden"
             >
               <img
-                src="/favicon.svg"
+                src="/favicon-96x96.png"
                 :alt="settingsStore.settings?.site_title || 'Panitia Rojabiyyah & Haul Abah Ke-5'"
                 class="w-full h-full object-contain rounded-full"
               />

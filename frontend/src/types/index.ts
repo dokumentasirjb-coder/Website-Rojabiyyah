@@ -155,6 +155,7 @@ export interface SiteSettings {
   site_subtitle: string
   navbar_badge: string
   favicon_url: string
+  site_favicon_url?: string
   logo_image_url: string
   topbar_date: string
   topbar_location: string
