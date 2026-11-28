@@ -911,6 +911,11 @@ async function handleSaveArticle(targetStatus?: 'published' | 'draft') {
     ? articleForm.cover_image.trim()
     : 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80'
 
+  const rawCatName = (articleForm.categoryName || 'LIPUTAN').trim()
+  const matchedCat = newsStore.categories.find(
+    (c) => c.name.toLowerCase() === rawCatName.toLowerCase()
+  )
+
   const res = await newsStore.saveArticle({
     id: articleForm.id,
     title: articleForm.title.trim(),
@@ -924,6 +929,8 @@ async function handleSaveArticle(targetStatus?: 'published' | 'draft') {
     metaTitle: articleForm.metaTitle,
     metaDescription: articleForm.metaDescription,
     mediaMap: { ...articleForm.mediaMap },
+    category_id: matchedCat?.id,
+    category_name: rawCatName,
     author: {
       id: 1,
       name: articleForm.authorName || 'Admin Redaksi',
@@ -932,9 +939,9 @@ async function handleSaveArticle(targetStatus?: 'published' | 'draft') {
       bio: null
     },
     category: {
-      id: 1,
-      name: (articleForm.categoryName || 'LIPUTAN').toUpperCase(),
-      slug: (articleForm.categoryName || 'liputan').toLowerCase(),
+      id: matchedCat?.id || 0,
+      name: rawCatName,
+      slug: rawCatName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       description: null,
       color: '#008f8a',
       icon: null,

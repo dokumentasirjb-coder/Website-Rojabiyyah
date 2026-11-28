@@ -307,7 +307,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function applyFavicon(url: string) {
     if (!url || typeof document === 'undefined') return
-    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']")
+    // Pertahankan tag statis PNG 96x96 & apple-touch-icon untuk Google Favicon Crawler
+    let link: HTMLLinkElement | null = document.querySelector("link[rel='shortcut icon']")
     if (!link) {
       link = document.createElement('link')
       link.type = 'image/svg+xml'

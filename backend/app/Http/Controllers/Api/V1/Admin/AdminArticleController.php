@@ -48,9 +48,11 @@ class AdminArticleController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->prepareCategoryInput($request);
+
         $validated = $request->validate([
             'title'         => ['required', 'string', 'max:255'],
-            'category_id'   => ['nullable', 'integer', 'exists:categories,id'],
+            'category_id'   => ['required', 'integer', 'exists:categories,id'],
             'category_name' => ['nullable', 'string', 'max:100'],
             'content'       => ['required', 'string'],
             'excerpt'       => ['nullable', 'string', 'max:500'],
@@ -61,10 +63,6 @@ class AdminArticleController extends Controller
             'author_role'   => ['nullable', 'string', 'max:120'],
         ]);
 
-        $validated['category_id'] = $this->resolveCategoryId(
-            $validated['category_id'] ?? null,
-            $validated['category_name'] ?? null
-        );
         unset($validated['category_name']);
 
         if (! Schema::hasColumn('articles', 'author_name')) {
@@ -137,9 +135,11 @@ class AdminArticleController extends Controller
     {
         $article = Article::findOrFail($id);
 
+        $this->prepareCategoryInput($request);
+
         $validated = $request->validate([
             'title'         => ['sometimes', 'required', 'string', 'max:255'],
-            'category_id'   => ['nullable', 'integer', 'exists:categories,id'],
+            'category_id'   => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'category_name' => ['nullable', 'string', 'max:100'],
             'content'       => ['sometimes', 'required', 'string'],
             'excerpt'       => ['nullable', 'string', 'max:500'],
@@ -150,12 +150,6 @@ class AdminArticleController extends Controller
             'author_role'   => ['nullable', 'string', 'max:120'],
         ]);
 
-        if (! empty($validated['category_name']) || ! empty($validated['category_id'])) {
-            $validated['category_id'] = $this->resolveCategoryId(
-                $validated['category_id'] ?? $article->category_id,
-                $validated['category_name'] ?? null
-            );
-        }
         unset($validated['category_name']);
 
         if (! Schema::hasColumn('articles', 'author_name')) {
@@ -267,35 +261,30 @@ class AdminArticleController extends Controller
     }
 
     /**
-     * Sinkronkan category_name dari admin ke tabel categories agar kategori baru otomatis tersimpan.
+     * Jika admin mengirim nama kategori baru (category_name atau category_id berupa string),
+     * buat/ambil kategori terlebih dahulu sebelum validasi exists:categories,id.
      */
-    private function resolveCategoryId(?int $categoryId, ?string $categoryName): int
+    private function prepareCategoryInput(Request $request): void
     {
-        $cleanName = trim((string) $categoryName);
-        if ($cleanName !== '') {
-            $slug = Str::slug($cleanName) ?: 'kategori-' . time();
+        $rawName = $request->input('category_name');
+        $rawId = $request->input('category_id');
+
+        $catName = is_string($rawName) && trim($rawName) !== ''
+            ? trim($rawName)
+            : (is_string($rawId) && ! is_numeric($rawId) && trim($rawId) !== '' ? trim($rawId) : '');
+
+        if ($catName !== '') {
+            $slug = Str::slug($catName) ?: 'kategori-' . time();
             $category = Category::firstOrCreate(
                 ['slug' => $slug],
                 [
-                    'name'       => $cleanName,
+                    'name'       => $catName,
                     'color'      => '#008f8a',
                     'sort_order' => ((int) Category::max('sort_order')) + 1,
                     'is_active'  => true,
                 ]
             );
-            return $category->id;
+            $request->merge(['category_id' => $category->id]);
         }
-
-        if ($categoryId) {
-            return $categoryId;
-        }
-
-        return (int) (Category::query()->value('id') ?? Category::create([
-            'name'       => 'Berita',
-            'slug'       => 'berita',
-            'color'      => '#008f8a',
-            'sort_order' => 1,
-            'is_active'  => true,
-        ])->id);
     }
 }

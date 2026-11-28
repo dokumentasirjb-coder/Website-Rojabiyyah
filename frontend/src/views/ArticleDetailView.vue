@@ -320,90 +320,114 @@ watch(() => route.params.slug, async (newSlug) => {
         <!-- Tags Section -->
         <div v-if="parsedTags.length > 0" class="mt-10 pt-6 border-t border-slate-100">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-bold uppercase text-slate-400 mr-2 flex items-center gap-1">
-              <Tag class="w-3.5 h-3.5" />
-              <span>Tag Terkait:</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">
+              TAG:
             </span>
             <span
               v-for="t in parsedTags"
               :key="t"
-              class="px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 text-xs font-medium transition-colors"
+              class="px-3 py-1 rounded-full bg-[#008f8a]/10 text-[#008f8a] hover:bg-[#008f8a]/15 text-xs font-medium transition-colors"
             >
               #{{ t }}
             </span>
           </div>
         </div>
 
-        <!-- Bottom Share Section (Replaces Author Bio Card) -->
-        <div class="mt-10 pt-8 border-t border-slate-200">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#fbfbfa] border border-slate-200/80">
-            <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                Bagikan Berita Ini
-              </span>
-              <p class="text-xs text-slate-500 mt-0.5">
-                Sebarkan informasi liputan ini ke rekan dan media sosial Anda.
-              </p>
-            </div>
-
-            <!-- Share Buttons Group -->
-            <div class="flex flex-wrap items-center gap-2">
-              <!-- WhatsApp -->
-              <a
-                :href="shareUrls.whatsapp"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-semibold text-xs transition-colors shadow-2xs"
-              >
-                <MessageCircle class="w-4 h-4 fill-white" />
-                <span>WhatsApp</span>
-              </a>
-
-              <!-- Facebook -->
-              <a
-                :href="shareUrls.facebook"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold text-xs transition-colors shadow-2xs"
-              >
-                <Facebook class="w-4 h-4 fill-white" />
-                <span>Facebook</span>
-              </a>
-
-              <!-- Twitter / X -->
-              <a
-                :href="shareUrls.twitter"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-2xs"
-              >
-                <Twitter class="w-4 h-4 fill-white" />
-                <span>X / Twitter</span>
-              </a>
-
-              <!-- Telegram -->
-              <a
-                :href="shareUrls.telegram"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#229ED9] hover:bg-[#1f8fc4] text-white font-semibold text-xs transition-colors shadow-2xs"
-              >
-                <Send class="w-4 h-4 fill-white" />
-                <span>Telegram</span>
-              </a>
-
-              <!-- Salin Tautan -->
-              <button
-                type="button"
-                @click="copyLink"
-                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
-              >
-                <Check v-if="copiedToast" class="w-4 h-4 text-emerald-600" />
-                <Share2 v-else class="w-4 h-4 text-slate-500" />
-                <span>{{ copiedToast ? 'Tautan Disalin!' : 'Salin Tautan' }}</span>
-              </button>
-            </div>
+        <!-- Bottom Share Section: Compact 1-Row Horizontal Bar -->
+        <div class="mt-8 py-4 border-y border-dashed border-slate-200 flex flex-wrap items-center justify-between gap-3 relative">
+          <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <svg viewBox="0 0 24 24" class="w-4 h-4 text-[#008f8a]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            <span>BAGIKAN</span>
           </div>
+
+          <div class="flex items-center gap-2.5">
+            <!-- WhatsApp -->
+            <a
+              :href="shareUrls.whatsapp"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Bagikan ke WhatsApp"
+              title="Bagikan ke WhatsApp"
+              class="w-10 h-10 rounded-full bg-[#22C55E] hover:opacity-90 text-white flex items-center justify-center transition-opacity shadow-2xs"
+            >
+              <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current" aria-hidden="true">
+                <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.49 0 .15 5.34.15 11.91c0 2.1.55 4.15 1.6 5.96L0 24l6.31-1.65a11.86 11.86 0 0 0 5.75 1.47h.01c6.57 0 11.91-5.34 11.91-11.91 0-3.18-1.24-6.17-3.46-8.43Zm-8.46 18.33h-.01a9.88 9.88 0 0 1-5.04-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.52-5.27c0-5.46 4.44-9.9 9.91-9.9 2.65 0 5.14 1.03 7.01 2.9a9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.45 9.9-9.91 9.9Zm5.43-7.41c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.21 5.08 4.5.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35Z"/>
+              </svg>
+            </a>
+
+            <!-- Facebook -->
+            <a
+              :href="shareUrls.facebook"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Bagikan ke Facebook"
+              title="Bagikan ke Facebook"
+              class="w-10 h-10 rounded-full bg-[#1877F2] hover:opacity-90 text-white flex items-center justify-center transition-opacity shadow-2xs"
+            >
+              <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current" aria-hidden="true">
+                <path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.41 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.96h-1.51c-1.49 0-1.95.93-1.95 1.88v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07Z"/>
+              </svg>
+            </a>
+
+            <!-- X (Twitter) -->
+            <a
+              :href="shareUrls.twitter"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Bagikan ke X"
+              title="Bagikan ke X"
+              class="w-10 h-10 rounded-full bg-[#1E293B] hover:opacity-90 text-white flex items-center justify-center transition-opacity shadow-2xs"
+            >
+              <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+
+            <!-- Telegram -->
+            <a
+              :href="shareUrls.telegram"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Bagikan ke Telegram"
+              title="Bagikan ke Telegram"
+              class="w-10 h-10 rounded-full bg-[#26A5E4] hover:opacity-90 text-white flex items-center justify-center transition-opacity shadow-2xs"
+            >
+              <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current" aria-hidden="true">
+                <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42Z"/>
+              </svg>
+            </a>
+
+            <!-- Salin Tautan -->
+            <button
+              type="button"
+              @click="copyLink"
+              aria-label="Salin Tautan"
+              :title="copiedToast ? 'Tautan disalin' : 'Salin Tautan'"
+              class="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              :class="copiedToast ? 'border-emerald-500 text-emerald-600 bg-emerald-50' : ''"
+            >
+              <svg v-if="copiedToast" viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </button>
+          </div>
+
+          <span
+            v-if="copiedToast"
+            class="absolute -top-8 right-0 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] font-medium shadow-sm"
+          >
+            Tautan disalin
+          </span>
         </div>
 
         <!-- Related News Section -->

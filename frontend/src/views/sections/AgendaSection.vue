@@ -18,6 +18,99 @@ const activeDay = ref(scheduleDays.value[0]?.id || 'rabu')
 function toggleAccordion(item: ScheduleItem) {
   item.isOpen = !item.isOpen
 }
+
+const MONTH_MAP: Record<string, number> = {
+  januari: 1,
+  februari: 2,
+  maret: 3,
+  april: 4,
+  mei: 5,
+  juni: 6,
+  juli: 7,
+  agustus: 8,
+  september: 9,
+  oktober: 10,
+  november: 11,
+  desember: 12,
+}
+
+function parseScheduleRange(fullDate: string, timeStr: string): { start: string; end: string } {
+  const dMatch = (fullDate || '').match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
+  const year = dMatch ? parseInt(dMatch[3], 10) : 2026
+  const month = dMatch ? (MONTH_MAP[dMatch[2].toLowerCase()] || 12) : 12
+  const day = dMatch ? parseInt(dMatch[1], 10) : 16
+
+  const times = (timeStr || '').match(/(\d{1,2})[:.](\d{2})/g) || []
+  const parseHM = (hm: string | undefined, defH: number, defM: number) => {
+    if (!hm) return { h: defH, m: defM }
+    const p = hm.split(/[:.]/)
+    return { h: parseInt(p[0], 10) || defH, m: parseInt(p[1], 10) || defM }
+  }
+
+  const s = parseHM(times[0], 8, 0)
+  const e = times[1] ? parseHM(times[1], s.h + 2, s.m) : { h: Math.min(23, s.h + 2), m: s.m }
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const ymd = `${year}${pad(month)}${pad(day)}`
+  return {
+    start: `${ymd}T${pad(s.h)}${pad(s.m)}00`,
+    end: `${ymd}T${pad(e.h)}${pad(e.m)}00`,
+  }
+}
+
+function getAgendaWhatsAppUrl(day: ScheduleDay, item: ScheduleItem): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://panitiarojabiyyah.id'
+  const lines = [
+    `*${item.title}*`,
+    `Hari/Tanggal: ${day.fullDate || day.dayDate}`,
+    `Waktu: ${item.time}`,
+    item.venue ? `Lokasi: ${item.venue}` : '',
+    `Info lengkap: ${origin}/agenda`,
+  ].filter(Boolean)
+  return `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`
+}
+
+function getGoogleCalendarUrl(day: ScheduleDay, item: ScheduleItem): string {
+  const { start, end } = parseScheduleRange(day.fullDate || day.dayDate, item.time)
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: item.title || 'Agenda Rojabiyyah & Haul Abah Ke-5',
+    dates: `${start}/${end}`,
+    details: `${day.theme || 'Rangkaian Acara Panitia Rojabiyyah & Haul Abah Ke-5'}${item.leader ? ` • Pimpinan: ${item.leader}` : ''}`,
+    location: item.venue || 'Pondok Pesantren Bumi Damai Al-Muhibbin, Tambakberas, Jombang',
+    ctz: 'Asia/Jakarta',
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function downloadIcs(day: ScheduleDay, item: ScheduleItem) {
+  const { start, end } = parseScheduleRange(day.fullDate || day.dayDate, item.time)
+  const uid = `agenda-${day.id}-${item.id || Date.now()}@panitiarojabiyyah.id`
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Panitia Rojabiyyah//Agenda//ID',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART;TZID=Asia/Jakarta:${start}`,
+    `DTEND;TZID=Asia/Jakarta:${end}`,
+    `SUMMARY:${(item.title || '').replace(/[\r\n]+/g, ' ')}`,
+    `DESCRIPTION:${(day.theme || 'Panitia Rojabiyyah & Haul Abah Ke-5').replace(/[\r\n]+/g, ' ')}`,
+    `LOCATION:${(item.venue || 'PP Bumi Damai Al-Muhibbin, Tambakberas, Jombang').replace(/[\r\n]+/g, ' ')}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${(item.title || 'agenda-rojabiyyah').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.ics`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -122,6 +215,45 @@ function toggleAccordion(item: ScheduleItem) {
                   <div v-if="item.venue || item.leader" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
                     <span v-if="item.venue">Tempat: <strong>{{ item.venue }}</strong></span>
                     <span v-if="item.leader">Pimpinan: <strong>{{ item.leader }}</strong></span>
+                  </div>
+
+                  <!-- Quick Actions: Share WA & Save to Calendar -->
+                  <div class="flex flex-wrap items-center gap-2 mt-3" @click.stop>
+                    <a
+                      :href="getAgendaWhatsAppUrl(d, item)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 text-[11px] font-semibold transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-current" aria-hidden="true">
+                        <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.49 0 .15 5.34.15 11.91c0 2.1.55 4.15 1.6 5.96L0 24l6.31-1.65a11.86 11.86 0 0 0 5.75 1.47h.01c6.57 0 11.91-5.34 11.91-11.91 0-3.18-1.24-6.17-3.46-8.43Zm-8.46 18.33h-.01a9.88 9.88 0 0 1-5.04-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.52-5.27c0-5.46 4.44-9.9 9.91-9.9 2.65 0 5.14 1.03 7.01 2.9a9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.45 9.9-9.91 9.9Z"/>
+                      </svg>
+                      <span>Bagikan ke WhatsApp</span>
+                    </a>
+
+                    <a
+                      :href="getGoogleCalendarUrl(d, item)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 text-[#008f8a]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                      <span>Simpan ke Kalender</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      @click="downloadIcs(d, item)"
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 text-[11px] font-medium transition-colors cursor-pointer"
+                      title="Unduh file .ics untuk iPhone/Android"
+                    >
+                      <span>.ICS</span>
+                    </button>
                   </div>
                 </div>
               </div>

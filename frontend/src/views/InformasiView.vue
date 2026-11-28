@@ -39,6 +39,78 @@ const settingsStore = useSettingsStore()
 const activeTab = ref<'all' | 'panduan' | 'tabarukan' | 'cp' | 'lokasi'>('all')
 const selectedGuideCategory = ref<string>('all')
 
+interface ParkingZonePoint {
+  id: string
+  category: 'Parkir Roda 2' | 'Parkir Roda 4/Bus' | 'Posko Kesehatan & Keamanan' | 'Pintu Masuk & Konsumsi'
+  title: string
+  capacity: string
+  description: string
+  maps_url: string
+}
+
+const activeParkingFilter = ref<string>('Semua')
+const PARKING_FILTER_TABS = [
+  'Semua',
+  'Parkir Roda 2',
+  'Parkir Roda 4/Bus',
+  'Posko Kesehatan & Keamanan',
+  'Pintu Masuk & Konsumsi',
+]
+
+const parkingZones = computed<ParkingZonePoint[]>(() => {
+  const customZones = (settingsStore.settings as any)?.parking_zones_json
+  if (Array.isArray(customZones) && customZones.length > 0) {
+    return customZones
+  }
+  return [
+    {
+      id: 'zone-r2-utara',
+      category: 'Parkir Roda 2',
+      title: 'Zona Parkir Sepeda Motor (Halaman Madrasah Utara)',
+      capacity: 'Kapasitas ± 800 Motor',
+      description: 'Akses masuk melalui Gerbang Utara Tambakberas, 150 meter berjalan kaki menuju Majelis Utama.',
+      maps_url: 'https://maps.google.com/?q=Pondok+Pesantren+Bahrul+Ulum+Tambakberas+Jombang',
+    },
+    {
+      id: 'zone-r2-barat',
+      category: 'Parkir Roda 2',
+      title: 'Zona Parkir Motor Area Barat Al-Muhibbin',
+      capacity: 'Kapasitas ± 500 Motor',
+      description: 'Diperuntukkan bagi jamaah dari arah barat/Ploso, dilengkapi petugas Banser pengatur lalu lintas.',
+      maps_url: 'https://maps.google.com/?q=Pondok+Pesantren+Bumi+Damai+Al-Muhibbin+Tambakberas',
+    },
+    {
+      id: 'zone-r4-lapangan',
+      category: 'Parkir Roda 4/Bus',
+      title: 'Sentral Parkir Mobil & Bus Rombongan (Lapangan Tambakberas)',
+      capacity: 'Kapasitas ± 60 Bus / 250 Mobil',
+      description: 'Area parkir utama rombongan luar kota dan mobil pribadi, tersedia jalur drop-off jamaah lansia.',
+      maps_url: 'https://maps.google.com/?q=Tambakberas+Jombang+Jawa+Timur',
+    },
+    {
+      id: 'zone-posko-kesehatan',
+      category: 'Posko Kesehatan & Keamanan',
+      title: 'Posko Medis Utama & Keamanan Terpadu',
+      capacity: 'Siaga 24 Jam • Ambulans & Tim Medis',
+      description: 'Terletak di sisi timur Ndalem Kasepuhan Al-Muhibbin untuk layanan pertolongan pertama dan informasi barang hilang.',
+      maps_url: 'https://maps.google.com/?q=Pondok+Pesantren+Bumi+Damai+Al-Muhibbin+Tambakberas',
+    },
+    {
+      id: 'zone-pintu-konsumsi',
+      category: 'Pintu Masuk & Konsumsi',
+      title: 'Gerbang Utama Jamaah & Dapur Umum Konsumsi',
+      capacity: 'Akses Putra & Putri Terpisah',
+      description: 'Titik penyambutan tamu, pembagian air minum/konsumsi jamaah, serta jalur terarah menuju area majelis.',
+      maps_url: 'https://maps.google.com/?q=Pondok+Pesantren+Bahrul+Ulum+Tambakberas+Jombang',
+    },
+  ]
+})
+
+const filteredParkingZones = computed(() => {
+  if (activeParkingFilter.value === 'Semua') return parkingZones.value
+  return parkingZones.value.filter((z) => z.category === activeParkingFilter.value)
+})
+
 // Modal Detail Tabarukan
 const activeModalItem = ref<TabarukanItem | null>(null)
 const isDetailModalOpen = ref(false)
@@ -577,6 +649,79 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Denah Zona Parkir & Posko Layanan Jamaah -->
+          <div class="mt-12 pt-10 border-t border-slate-200/80">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+              <div>
+                <span class="text-[11px] font-bold tracking-[0.2em] uppercase text-[#008f8a] block mb-1">
+                  NAVIGASI JAMAAH
+                </span>
+                <h3 class="text-xl sm:text-2xl font-bold text-slate-900">
+                  Denah Zona Parkir &amp; Posko Layanan Jamaah
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                  Pilih kategori titik layanan di kawasan Pondok Pesantren Bahrul Ulum Tambakberas untuk melihat rute langsung.
+                </p>
+              </div>
+            </div>
+
+            <!-- Filter Tabs Zona Parkir & Posko -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar text-xs">
+              <button
+                v-for="tab in PARKING_FILTER_TABS"
+                :key="tab"
+                type="button"
+                @click="activeParkingFilter = tab"
+                class="px-4 py-2 rounded-full font-semibold transition-colors shrink-0 cursor-pointer border"
+                :class="[
+                  activeParkingFilter === tab
+                    ? 'bg-[#08253C] text-white border-[#08253C]'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                ]"
+              >
+                {{ tab }}
+              </button>
+            </div>
+
+            <!-- Kartu Titik Parkir & Posko -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              <div
+                v-for="zone in filteredParkingZones"
+                :key="zone.id"
+                class="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col justify-between gap-4 shadow-2xs hover:border-[#008f8a]/40 transition-colors"
+              >
+                <div class="space-y-2.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-[#008f8a] border border-emerald-100">
+                      {{ zone.category }}
+                    </span>
+                    <span class="text-[11px] font-semibold text-slate-500">
+                      {{ zone.capacity }}
+                    </span>
+                  </div>
+                  <h4 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                    {{ zone.title }}
+                  </h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    {{ zone.description }}
+                  </p>
+                </div>
+
+                <a
+                  :href="zone.maps_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#008f8a] hover:bg-[#007a75] text-white text-xs font-bold transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                  </svg>
+                  <span>Buka Rute Google Maps</span>
+                </a>
               </div>
             </div>
           </div>
